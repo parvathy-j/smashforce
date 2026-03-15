@@ -1,0 +1,664 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Smash Force Academy – Book Your Court</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,300;0,600;0,700;0,800;0,900;1,800;1,900&family=Outfit:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="index.css" />
+    <script src="https://js.stripe.com/v3/"></script>
+  </head>
+  <body>
+    <!-- ═══════════════════════════════════════
+     NAV
+════════════════════════════════════════ -->
+    <nav>
+      <a class="logo" href="#">
+        <img src="Smash%20Force%20Badminton%20Centre%20logo%203.png" alt="Smash Force Badminton Centre" class="logo-img">
+        <div class="logo-text">
+          SMASH FORCE<small>Academy</small>
+          <div class="logo-tagline" id="logoTaglineText">
+            Experience the Power of the Smash.
+          </div>
+        </div>
+      </a>
+      <ul class="nav-ul">
+        <li><a href="#courts">Courts</a></li>
+        <li><a href="#games">Games</a></li>
+        <li><a href="#membership">Membership</a></li>
+        <li><a href="booking.html" target="_blank">Booking</a></li>
+        <li><a href="#contact">Contact</a></li>
+        <li><span class="nav-auth-chip" id="authStatusChip">Guest</span></li>
+        <li>
+          <button class="nav-auth-btn" id="authOpenBtn" type="button">
+            Login / Signup
+          </button>
+        </li>
+        <li class="hidden-auth-link" id="adminNavItem">
+          <a href="admin.html">Admin</a>
+        </li>
+        <li>
+          <button
+            class="nav-auth-btn nav-auth-btn-ghost hidden-auth-link"
+            id="authLogoutBtn"
+            type="button"
+          >
+            Logout
+          </button>
+        </li>
+        <li>
+          <a href="booking.html" class="nav-book" target="_blank">Book Now →</a>
+        </li>
+      </ul>
+      <div class="burger" id="burger">
+        <span></span><span></span><span></span>
+      </div>
+    </nav>
+
+    <!-- Mobile Nav -->
+    <div class="mob-nav" id="mobNav">
+      <a href="#courts">Courts</a>
+      <a href="#games">Games</a>
+      <a href="#membership">Membership</a>
+      <a href="booking.html" target="_blank">Booking</a>
+      <a href="#contact">Contact</a>
+      <button class="mob-auth-btn" id="mobAuthOpenBtn" type="button">
+        Login / Signup
+      </button>
+      <a href="admin.html" class="hidden-auth-link" id="mobAdminLink">Admin Panel</a>
+      <button
+        class="mob-auth-btn hidden-auth-link"
+        id="mobAuthLogoutBtn"
+        type="button"
+      >
+        Logout
+      </button>
+      <a href="booking.html" class="mob-cta" target="_blank">Book Now →</a>
+    </div>
+
+    <div class="auth-modal hidden-auth-link" id="authModal" aria-hidden="true">
+      <div class="auth-modal-card" role="dialog" aria-modal="true">
+        <button class="auth-close" id="authCloseBtn" type="button">×</button>
+        <h2>Member Access</h2>
+        <p class="auth-sub">
+          Sign in to manage membership access and member pricing.
+        </p>
+        <div class="auth-tabs">
+          <button class="auth-tab active" id="loginTabBtn" type="button">Login</button>
+          <button class="auth-tab" id="signupTabBtn" type="button">Sign Up</button>
+        </div>
+
+        <form id="loginForm" class="auth-form">
+          <label for="loginEmail">Email</label>
+          <input id="loginEmail" type="email" required placeholder="you@email.com" />
+          <label for="loginPassword">Password</label>
+          <input
+            id="loginPassword"
+            type="password"
+            required
+            minlength="8"
+            placeholder="Enter your password"
+          />
+          <button class="btn-lime auth-submit" type="submit">Login</button>
+        </form>
+
+        <form id="signupForm" class="auth-form hidden-auth-link">
+          <label for="signupName">Full Name</label>
+          <input id="signupName" type="text" required placeholder="Jane Smith" />
+          <label for="signupEmail">Email</label>
+          <input id="signupEmail" type="email" required placeholder="you@email.com" />
+          <label for="signupMembershipType">Membership Type</label>
+          <select id="signupMembershipType">
+            <option value="">No membership yet</option>
+            <option value="court">Court Membership</option>
+            <option value="all-access">All Access Membership</option>
+          </select>
+          <label for="signupPassword">Password</label>
+          <input
+            id="signupPassword"
+            type="password"
+            required
+            minlength="8"
+            placeholder="Create a password"
+          />
+          <button class="btn-lime auth-submit" type="submit">Create Account</button>
+        </form>
+
+        <div class="auth-error" id="authError"></div>
+        <div class="auth-success" id="authSuccess"></div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════
+     HERO
+════════════════════════════════════════ -->
+    <section class="hero" id="home">
+      <div class="hero-bg"></div>
+      <div class="court-grid-bg"></div>
+      <div class="hero-glow"></div>
+      <div class="hero-deco">🏸</div>
+      <div class="hero-c">
+        <div>
+          <div class="hero-tag">
+            <span class="dot"></span>
+            <span id="heroAnnouncementText">Now accepting bookings</span>
+          </div>
+          <h1 class="hero-h1">
+            SMASH<br /><span class="h1-lime">FORCE</span><br />ACADEMY
+          </h1>
+          <p class="hero-p" id="heroDescriptionText">
+            9 professional badminton courts, 5 multi-game tables, and elite
+            facilities — open mornings and evenings for players of every level.
+          </p>
+          <div class="hero-btns">
+            <a href="booking.html" class="btn-lime" target="_blank"
+              >🏸 Book a Court</a
+            >
+            <a href="#membership" class="btn-ghost">View Memberships</a>
+          </div>
+        </div>
+        <div class="hero-stats">
+          <div class="hstat">
+            <div class="hstat-n">9</div>
+            <div class="hstat-l">Courts</div>
+          </div>
+          <div class="hstat">
+            <div class="hstat-n">5</div>
+            <div class="hstat-l">Game Tables</div>
+          </div>
+          <div class="hstat">
+            <div class="hstat-n">$15</div>
+            <div class="hstat-l">From / hr</div>
+          </div>
+          <div class="hstat">
+            <div class="hstat-n">6AM</div>
+            <div class="hstat-l">Opens</div>
+          </div>
+        </div>
+      </div>
+      <div class="scroll-cue">
+        <span>Scroll</span>
+        <div class="scroll-arr"></div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════
+     COURTS
+════════════════════════════════════════ -->
+    <section id="courts">
+      <div class="container">
+        <div class="courts-top rv">
+          <div class="eyebrow">Facilities</div>
+          <h2 class="sec-h">BADMINTON COURTS</h2>
+          <p class="sec-p">
+            All courts maintained to professional standards — consistent pricing
+            across all time slots, every day.
+          </p>
+        </div>
+
+        <div class="courts-g rv">
+          <!-- Standard Courts -->
+          <div class="c-card">
+            <div class="c-bar"></div>
+            <div class="c-bg-num">1–6</div>
+            <div class="c-ey">Courts 1 – 6</div>
+            <h3>Standard Courts</h3>
+            <p class="c-desc">
+              Full-width courts with professional-grade flooring and tournament
+              nets. Ideal for doubles, team training, and competitive play.
+            </p>
+            <div class="c-price-row">
+              <div class="c-price-big" id="standardCourtPrice">$25</div>
+              <div class="c-price-sub">per hour<br />all day</div>
+            </div>
+            <div class="c-feats">
+              <div class="c-feat">
+                <span class="c-dot"></span>6 courts available
+              </div>
+              <div class="c-feat">
+                <span class="c-dot"></span>Flat rate — no peak surcharge
+              </div>
+              <div class="c-feat">
+                <span class="c-dot"></span>Singles &amp; doubles suitable
+              </div>
+              <div class="c-feat">
+                <span class="c-dot"></span>Bookable in 30-minute slots
+              </div>
+            </div>
+            <div class="c-mem">
+              🏅 Members pay $20/hr — save $5 every session
+            </div>
+          </div>
+
+          <!-- Single Courts -->
+          <div class="c-card cyan">
+            <div class="c-bar"></div>
+            <div class="c-bg-num">7–9</div>
+            <div class="c-ey">Courts 7 – 9</div>
+            <h3>Single Courts</h3>
+            <p class="c-desc">
+              Compact courts — great value for focused one-on-one training
+              sessions.
+            </p>
+            <div class="c-price-row">
+              <div class="c-price-big" id="singleCourtPrice">$15</div>
+              <div class="c-price-sub">per hour<br />all day</div>
+            </div>
+            <div class="c-feats">
+              <div class="c-feat">
+                <span class="c-dot"></span>3 courts available
+              </div>
+              <div class="c-feat">
+                <span class="c-dot"></span>Flat rate — no peak surcharge
+              </div>
+              <div class="c-feat">
+                <span class="c-dot"></span>Perfect for singles training
+              </div>
+              <div class="c-feat">
+                <span class="c-dot"></span>Bookable in 30-minute slots
+              </div>
+            </div>
+            <div class="c-mem">
+              🏅 Members pay $12/hr — save $3 every session
+            </div>
+          </div>
+        </div>
+
+        <div class="courts-note rv">
+          <span style="font-size: 1.3rem">⏱️</span>
+          <span
+            ><strong>All prices are hourly.</strong> Book in 30-minute
+            increments during morning (6–9 AM) or evening (5–11 PM) sessions.
+            The same rate applies at every time of day.</span
+          >
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════
+     MULTI-GAME TABLES
+════════════════════════════════════════ -->
+    <section id="games">
+      <div class="container">
+        <div class="games-layout">
+          <div class="rv">
+            <div class="eyebrow">Entertainment</div>
+            <h2 class="sec-h">PRIVATE MULTI-GAME TABLES</h2>
+            <p class="sec-p" style="margin-bottom: 28px">
+              Take a break from the courts or book a dedicated social session.
+              Five private tables — choose your game.
+            </p>
+            <div class="c-feats" style="margin-bottom: 32px">
+              <div class="c-feat">
+                <span class="c-dot"></span>5 private dedicated tables
+              </div>
+              <div class="c-feat">
+                <span class="c-dot"></span>Pool / Billiards
+              </div>
+              <div class="c-feat">
+                <span class="c-dot"></span>Ice Hockey Table
+              </div>
+              <div class="c-feat">
+                <span class="c-dot"></span>Table Tennis / Ping Pong
+              </div>
+              <div class="c-feat">
+                <span class="c-dot"></span>All Access Members pay only $8/hr
+              </div>
+            </div>
+            <a href="booking.html" class="btn-lime" target="_blank"
+              >Book a Table</a
+            >
+          </div>
+          <div class="games-cards rv">
+            <div class="g-card">
+              <div class="g-em">🎱</div>
+              <h4>Pool</h4>
+            </div>
+            <div class="g-card">
+              <div class="g-em">🏒</div>
+              <h4>Ice Hockey</h4>
+            </div>
+            <div class="g-card">
+              <div class="g-em">🏓</div>
+              <h4>Table Tennis</h4>
+            </div>
+            <div class="g-price">
+              <div class="big" id="tablePriceText">
+                $15<span
+                  style="font-size: 1.6rem; color: rgba(184, 240, 0, 0.45)"
+                  >/hr</span
+                >
+              </div>
+              <div class="sub">Per table · All games included</div>
+              <div class="mem">🏅 All Access Members: $8/hr</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════
+     MEMBERSHIP
+════════════════════════════════════════ -->
+    <section id="membership">
+      <div class="container">
+        <div class="rv">
+          <div class="eyebrow">Save Every Visit</div>
+          <h2 class="sec-h">MEMBERSHIP PLANS</h2>
+          <p class="sec-p">
+            Regular players save significantly. No lock-in contracts — cancel
+            anytime.
+          </p>
+        </div>
+        <div class="mem-g">
+          <!-- Court Membership -->
+          <div class="m-card rv">
+            <div class="m-ey">Court Access</div>
+            <h3>Court Membership</h3>
+            <p
+              style="
+                color: var(--white-dim);
+                font-size: 0.82rem;
+                font-weight: 300;
+              "
+            >
+              Discounted rates on all courts
+            </p>
+            <div class="m-pr">
+              <span class="m-pr-big" id="courtMembershipPrice">$49</span>
+              <span class="m-pr-mo">/ month</span>
+            </div>
+            <ul class="m-feats">
+              <li class="mf">
+                <span class="mf-ch">✓</span
+                ><span
+                  >Standard Courts: <strong>$20/hr</strong
+                  ><span class="save">Save $5/hr</span></span
+                >
+              </li>
+              <li class="mf">
+                <span class="mf-ch">✓</span
+                ><span
+                  >Single Courts: <strong>$12/hr</strong
+                  ><span class="save">Save $3/hr</span></span
+                >
+              </li>
+              <li class="mf">
+                <span class="mf-ch">✓</span><span>Priority booking access</span>
+              </li>
+              <li class="mf">
+                <span class="mf-ch">✓</span><span>Cancel anytime</span>
+              </li>
+            </ul>
+            <a href="booking.html" class="btn-m btn-m-out" target="_blank">Get Started</a>
+          </div>
+
+          <!-- All Access Membership -->
+          <div class="m-card top rv">
+            <div class="m-pop">⭐ Most Popular</div>
+            <div class="m-ey">Full Access</div>
+            <h3>All Access Membership</h3>
+            <p
+              style="
+                color: var(--white-dim);
+                font-size: 0.82rem;
+                font-weight: 300;
+              "
+            >
+              Courts + game tables, maximum savings
+            </p>
+            <div class="m-pr">
+              <span class="m-pr-big" id="allAccessMembershipPrice">$79</span>
+              <span class="m-pr-mo">/ month</span>
+            </div>
+            <ul class="m-feats">
+              <li class="mf">
+                <span class="mf-ch">✓</span
+                ><span
+                  >Standard Courts: <strong>$20/hr</strong
+                  ><span class="save">Save $5/hr</span></span
+                >
+              </li>
+              <li class="mf">
+                <span class="mf-ch">✓</span
+                ><span
+                  >Single Courts: <strong>$12/hr</strong
+                  ><span class="save">Save $3/hr</span></span
+                >
+              </li>
+              <li class="mf">
+                <span class="mf-ch">✓</span
+                ><span
+                  >Multi-Game Tables: <strong>$8/hr</strong
+                  ><span class="save">Save $7/hr</span></span
+                >
+              </li>
+              <li class="mf">
+                <span class="mf-ch">✓</span
+                ><span>Priority booking + guest discounts</span>
+              </li>
+              <li class="mf">
+                <span class="mf-ch">✓</span><span>Cancel anytime</span>
+              </li>
+            </ul>
+            <a href="booking.html" class="btn-m btn-m-lime" target="_blank">Get All Access →</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════
+     BOOKING
+════════════════════════════════════════ -->
+    <section id="booking">
+      <div class="container">
+        <div class="rv" style="text-align: center;">
+          <div class="eyebrow" style="justify-content: center; margin-bottom: 14px;">Reserve Online</div>
+          <h2 class="sec-h">BOOK YOUR SESSION</h2>
+          <p class="sec-p" style="margin: 16px auto 32px; display: block;">
+            Ready to secure your court? Book online 24/7 with instant confirmation.
+          </p>
+          <a href="booking.html" class="btn-lime" id="bookingCtaButton" target="_blank"
+            >🏸 Book Your Court Now</a
+          >
+        </div>
+
+        
+    </section>
+
+    <!-- ═══════════════════════════════════════
+     HOURS BAND
+════════════════════════════════════════ -->
+    <div class="hrs-band">
+      <div class="hrs-band-in">
+        <div class="hrs-b">
+          <div class="hrs-ico">🌅</div>
+          <div>
+            <div class="hrs-label">Morning Session</div>
+            <div class="hrs-time">6:00 AM – 9:00 AM</div>
+            <div class="hrs-note">Early bird sessions daily</div>
+          </div>
+        </div>
+        <div class="hrs-div"></div>
+        <div class="hrs-b">
+          <div class="hrs-ico">🌆</div>
+          <div>
+            <div class="hrs-label">Evening Session</div>
+            <div class="hrs-time">5:00 PM – 11:00 PM</div>
+            <div class="hrs-note">Last booking at 10:30 PM</div>
+          </div>
+        </div>
+        <div class="hrs-div"></div>
+        <div class="hrs-b">
+          <div class="hrs-ico">📱</div>
+          <div>
+            <div class="hrs-label">Book Online</div>
+            <div class="hrs-time">24 / 7</div>
+            <div class="hrs-note">Reserve from anywhere, anytime</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════
+     CONTACT
+════════════════════════════════════════ -->
+    <section id="contact">
+      <div class="container">
+        <div class="contact-layout">
+          <div>
+            <div class="eyebrow rv">Find Us</div>
+            <h2 class="sec-h rv">GET IN TOUCH</h2>
+            <p class="sec-p rv">
+              Questions about membership, group bookings, or facilities? We'd
+              love to hear from you.
+            </p>
+            <div class="c-cards">
+              <div class="cc rv">
+                <div class="cc-ico">📍</div>
+                <div>
+                  <div class="cc-lb">Location</div>
+                  <div class="cc-v" id="contactLocationText">
+                    Your Full Address · City
+                  </div>
+                </div>
+              </div>
+              <div class="cc rv">
+                <div class="cc-ico">📞</div>
+                <div>
+                  <div class="cc-lb">Phone</div>
+                  <div class="cc-v" id="contactPhoneText">+1 (000) 000-0000</div>
+                </div>
+              </div>
+              <div class="cc rv">
+                <div class="cc-ico">✉️</div>
+                <div>
+                  <div class="cc-lb">Email</div>
+                  <div class="cc-v" id="contactEmailText">
+                    info@smashforceacademy.com
+                  </div>
+                </div>
+              </div>
+              <div class="cc rv">
+                <div class="cc-ico">⏰</div>
+                <div>
+                  <div class="cc-lb">Hours</div>
+                  <div class="cc-v" id="contactHoursText">
+                    Morning 6–9 AM · Evening 5–11 PM
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-card rv">
+            <h3>Send a Message</h3>
+            <div class="fg-2">
+              <div class="fg">
+                <label>First Name</label
+                ><input type="text" placeholder="John" />
+              </div>
+              <div class="fg">
+                <label>Last Name</label
+                ><input type="text" placeholder="Smith" />
+              </div>
+            </div>
+            <div class="fg-2">
+              <div class="fg">
+                <label>Email</label
+                ><input type="email" placeholder="john@email.com" />
+              </div>
+              <div class="fg">
+                <label>Phone</label
+                ><input type="tel" placeholder="+1 555 000 0000" />
+              </div>
+            </div>
+            <div class="fg">
+              <label>Topic</label>
+              <select>
+                <option value="">Select a topic...</option>
+                <option>Court Booking</option>
+                <option>Membership Enquiry</option>
+                <option>Group / Event Booking</option>
+                <option>Multi-Game Tables</option>
+                <option>General Enquiry</option>
+              </select>
+            </div>
+            <div class="fg">
+              <label>Message</label>
+              <textarea placeholder="How can we help?"></textarea>
+            </div>
+            <button
+              class="btn-lime"
+              style="
+                width: 100%;
+                justify-content: center;
+                border: none;
+                font-size: 0.85rem;
+              "
+              onclick="showToast('✅ Message sent! We\'ll reply shortly.')"
+            >
+              Send Message →
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════
+     FOOTER
+════════════════════════════════════════ -->
+    <footer>
+      <div class="foot-in">
+        <div class="foot-brand">
+          <a class="logo" href="#">
+            <img src="Smash%20Force%20Badminton%20Centre%20logo%203.png" alt="Smash Force Badminton Centre" class="logo-img">
+            <div class="logo-text">SMASH FORCE<small>Academy</small></div>
+          </a>
+          <p>
+            9 courts, 5 game tables, and a community built for players who love
+            the game.
+          </p>
+        </div>
+        <div class="foot-links">
+          <h4>Quick Links</h4>
+          <ul>
+            <li><a href="#courts">Badminton Courts</a></li>
+            <li><a href="#games">Multi-Game Tables</a></li>
+            <li><a href="#membership">Membership Plans</a></li>
+            <li><a href="booking.html" target="_blank">Book Online</a></li>
+            <li><a href="admin.html">Admin Panel</a></li>
+            <li><a href="#contact">Contact Us</a></li>
+          </ul>
+        </div>
+        <div class="foot-links">
+          <h4>Opening Hours</h4>
+          <ul>
+            <li><a href="#">Morning: 6:00 – 9:00 AM</a></li>
+            <li><a href="#">Evening: 5:00 – 11:00 PM</a></li>
+            <li><a href="#">Open 7 days a week</a></li>
+            <li><a href="#">Book online 24/7</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="foot-bot">
+        <span>© 2026 Smash Force Academy. All rights reserved.</span>
+        <span>Built for champions at every level 🏸</span>
+      </div>
+    </footer>
+
+    <div class="toast" id="toast"></div>
+
+    <!-- Floating Book Button -->
+    <a href="booking.html" class="floating-book" target="_blank" title="Book a Court"
+      ><span id="floatingButtonText">🏸Book Now!</span></a
+    >
+
+    <!-- External JS — always load last for best performance -->
+    <script src="booking.js"></script>
+    <script src="main.js"></script>
+  </body>
+</html>

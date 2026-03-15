@@ -1,0 +1,18 @@
+{
+  "name": "smashforce",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Smash Force Academy booking and Stripe backend",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "express": "^4.21.2",
+    "helmet": "^8.1.0",
+    "sqlite3": "^5.1.7",
+    "stripe": "^17.7.0"
+  }
+}
