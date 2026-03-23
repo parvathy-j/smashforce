@@ -8,7 +8,6 @@ const Stripe = require("stripe");
 const crypto = require("crypto");
 const fs = require("fs/promises");
 const path = require("path");
-const sqlite3 = require("sqlite3").verbose();
 
 const app = express();
 
@@ -16,18 +15,75 @@ const stripe = process.env.STRIPE_SECRET_KEY
   ? Stripe(process.env.STRIPE_SECRET_KEY)
   : null;
 const APP_URL = process.env.APP_URL || "http://localhost:3000";
+const CMS_SERVING_URL = String(process.env.CMS_SERVING_URL || "").trim();
 const IS_PRODUCTION = process.env.NODE_ENV === "production";
 const TRUST_PROXY = process.env.TRUST_PROXY === "1" || IS_PRODUCTION;
 const APP_ORIGIN = new URL(APP_URL).origin;
+const EXTRA_ALLOWED_ORIGINS = String(process.env.ALLOWED_ORIGINS || "")
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+const CSRF_ALLOWED_ORIGINS = new Set([APP_ORIGIN, ...EXTRA_ALLOWED_ORIGINS]);
 const SESSION_COOKIE_NAME = "sf_session";
 const SESSION_COOKIE_DOMAIN = String(
   process.env.SESSION_COOKIE_DOMAIN || "",
 ).trim();
 const SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000;
-const USERS_FILE = path.join(__dirname, "data", "users.json");
-const DB_FILE = path.join(__dirname, "data", "smashforce.db");
+const USERS_FILE =
+  process.env.USERS_FILE || path.join(__dirname, "data", "users.json");
+const DB_FILE =
+  process.env.DB_FILE || path.join(__dirname, "data", "smashforce.db");
+const DB_PROVIDER = String(
+  process.env.DB_PROVIDER || (process.env.DATABASE_URL ? "mysql" : "sqlite"),
+)
+  .trim()
+  .toLowerCase();
 let db = null;
+let mysqlPool = null;
+let sqlite3 = null;
+let mysql = null;
 const rateLimitBuckets = new Map();
+
+function getSqliteDriver() {
+  if (sqlite3) {
+    return sqlite3;
+  }
+
+  try {
+    sqlite3 = require("sqlite3").verbose();
+    return sqlite3;
+  } catch {
+    throw new Error(
+      "sqlite3 dependency is unavailable. Install sqlite3 or set DB_PROVIDER=mysql with a valid DATABASE_URL.",
+    );
+  }
+}
+
+function getMysqlDriver() {
+  if (mysql) {
+    return mysql;
+  }
+
+  try {
+    mysql = require("mysql2/promise");
+    return mysql;
+  } catch {
+    throw new Error(
+      "mysql2 dependency is unavailable. Install mysql2 or set DB_PROVIDER=sqlite.",
+    );
+  }
+}
+
+function isMysqlProvider() {
+  return DB_PROVIDER === "mysql";
+}
+
+function toDbBoolean(value) {
+  if (isMysqlProvider()) {
+    return Boolean(value);
+  }
+  return value ? 1 : 0;
+}
 
 function normalizeSameSite(value) {
   const normalized = String(value || "Lax")
@@ -40,6 +96,39 @@ function normalizeSameSite(value) {
     return "None";
   }
   return "Lax";
+}
+
+function isAllowedLocalDevOrigin(origin) {
+  if (IS_PRODUCTION) {
+    return false;
+  }
+
+  try {
+    const url = new URL(origin);
+    if (url.protocol !== "http:" && url.protocol !== "https:") {
+      return false;
+    }
+
+    return (
+      url.hostname === "localhost" ||
+      url.hostname === "127.0.0.1" ||
+      url.hostname === "[::1]"
+    );
+  } catch {
+    return false;
+  }
+}
+
+function isAllowedRequestOrigin(origin) {
+  if (!origin) {
+    return false;
+  }
+
+  if (CSRF_ALLOWED_ORIGINS.has(origin)) {
+    return true;
+  }
+
+  return isAllowedLocalDevOrigin(origin);
 }
 
 const SESSION_COOKIE_SAMESITE = normalizeSameSite(
@@ -77,6 +166,142 @@ const FACILITY_PRICES = {
   },
 };
 
+const MEMBERSHIP_PRICES = {
+  court: {
+    label: "Court Membership (1 month)",
+    amount: 4900,
+  },
+  "all-access": {
+    label: "All Access Membership (1 month)",
+    amount: 7900,
+  },
+};
+
+function loadPromoCodes() {
+  const raw = String(process.env.PROMO_CODES || "").trim();
+  if (!raw) {
+    return {};
+  }
+
+  try {
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      return {};
+    }
+
+    const normalized = {};
+    for (const [rawCode, rawRule] of Object.entries(parsed)) {
+      const code = String(rawCode || "")
+        .trim()
+        .toUpperCase();
+      if (!code || !rawRule || typeof rawRule !== "object") {
+        continue;
+      }
+
+      const type = String(rawRule.type || "")
+        .trim()
+        .toLowerCase();
+      if (type === "percent") {
+        const value = Number(rawRule.value);
+        if (!Number.isFinite(value) || value <= 0 || value > 100) {
+          continue;
+        }
+        normalized[code] = {
+          type: "percent",
+          value,
+          minAmount: Math.max(0, Number(rawRule.minAmount || 0)),
+        };
+        continue;
+      }
+
+      if (type === "fixed") {
+        const cents = Number(rawRule.value);
+        if (!Number.isFinite(cents) || cents <= 0) {
+          continue;
+        }
+        normalized[code] = {
+          type: "fixed",
+          value: Math.round(cents),
+          minAmount: Math.max(0, Number(rawRule.minAmount || 0)),
+        };
+      }
+    }
+
+    return normalized;
+  } catch {
+    return {};
+  }
+}
+
+const PROMO_CODES = loadPromoCodes();
+
+function resolvePromo(codeRaw = "") {
+  const code = String(codeRaw || "")
+    .trim()
+    .toUpperCase();
+  if (!code) {
+    return null;
+  }
+  return PROMO_CODES[code] ? { code, rule: PROMO_CODES[code] } : null;
+}
+
+function applyPromoDiscount(baseAmountCents, promo = null) {
+  const base = Math.max(0, Math.round(Number(baseAmountCents || 0)));
+  if (!promo?.rule) {
+    return {
+      amountBeforeDiscount: base,
+      discountAmount: 0,
+      amountAfterDiscount: base,
+      appliedPromoCode: "",
+    };
+  }
+
+  const minAmount = Math.max(0, Math.round(Number(promo.rule.minAmount || 0)));
+  if (base < minAmount) {
+    return {
+      amountBeforeDiscount: base,
+      discountAmount: 0,
+      amountAfterDiscount: base,
+      appliedPromoCode: "",
+      promoError: `Promo code requires a minimum order of $${(minAmount / 100).toFixed(2)}.`,
+    };
+  }
+
+  let discount = 0;
+  if (promo.rule.type === "percent") {
+    discount = Math.round((base * Number(promo.rule.value || 0)) / 100);
+  } else if (promo.rule.type === "fixed") {
+    discount = Math.round(Number(promo.rule.value || 0));
+  }
+
+  discount = Math.max(0, Math.min(discount, base));
+
+  return {
+    amountBeforeDiscount: base,
+    discountAmount: discount,
+    amountAfterDiscount: Math.max(0, base - discount),
+    appliedPromoCode: discount > 0 ? promo.code : "",
+  };
+}
+
+const SITE_CONTENT_DEFAULTS = {
+  logoTagline: "Experience the Power of the Smash.",
+  heroAnnouncement: "Now accepting bookings",
+  heroDescription:
+    "9 professional badminton courts, 5 multi-game tables, and elite facilities — open mornings and evenings for players of every level.",
+  standardCourtPrice: "$25",
+  singleCourtPrice: "$15",
+  tablePrice: "$15/hr",
+  courtMembershipPrice: "$49",
+  allAccessMembershipPrice: "$79",
+  bookingCta: "🏸 Book Your Court Now",
+  contactLocation: "Your Full Address · City",
+  contactPhone: "+1 (000) 000-0000",
+  contactEmail: "info@smashforceacademy.com",
+  contactHours: "Morning 6–9 AM · Evening 5–11 PM",
+  floatingButtonText: "🏸Book Now!",
+};
+
 app.use((req, res, next) => {
   if (req.path !== "/admin.html") {
     return next();
@@ -90,14 +315,32 @@ app.use((req, res, next) => {
 app.use(express.static("."));
 const jsonParser = express.json();
 app.use((req, res, next) => {
-  if (req.originalUrl === "/stripe-webhook") {
+  // Preserve raw payload for Stripe signature verification.
+  if (req.originalUrl.startsWith("/stripe-webhook")) {
     return next();
   }
   return jsonParser(req, res, next);
 });
 
+app.get("/", (_req, res) => {
+  // Allow hosting frontend/CMS separately while keeping this service as backend.
+  if (CMS_SERVING_URL) {
+    return res.redirect(302, CMS_SERVING_URL);
+  }
+  res.sendFile(path.join(__dirname, "smash-force-academy.html"));
+});
+
 app.get("/health", (_, res) => {
   res.json({ ok: true, stripeConfigured: Boolean(stripe) });
+});
+
+app.get("/client-config.js", (_req, res) => {
+  const publishableKey = String(process.env.STRIPE_PUBLISHABLE_KEY || "");
+  res.setHeader("Content-Type", "application/javascript; charset=utf-8");
+  res.setHeader("Cache-Control", "no-store");
+  res.send(
+    `window.__SFA_CONFIG__ = { STRIPE_PUBLISHABLE_KEY: ${JSON.stringify(publishableKey)} };`,
+  );
 });
 
 function requireStripeConfigured(res) {
@@ -185,7 +428,7 @@ function requireSameOrigin(req, res, next) {
     }
   }
 
-  if (!requestOrigin || requestOrigin !== APP_ORIGIN) {
+  if (!isAllowedRequestOrigin(requestOrigin)) {
     return res.status(403).json({ error: "Blocked by CSRF origin policy." });
   }
 
@@ -231,6 +474,10 @@ async function ensureUsersFile() {
 }
 
 function dbRun(sql, params = []) {
+  if (isMysqlProvider()) {
+    return mysqlPool.execute(sql, params).then(([result]) => result);
+  }
+
   return new Promise((resolve, reject) => {
     db.run(sql, params, function (err) {
       if (err) {
@@ -243,6 +490,10 @@ function dbRun(sql, params = []) {
 }
 
 function dbGet(sql, params = []) {
+  if (isMysqlProvider()) {
+    return mysqlPool.execute(sql, params).then(([rows]) => rows[0] || null);
+  }
+
   return new Promise((resolve, reject) => {
     db.get(sql, params, (err, row) => {
       if (err) {
@@ -255,6 +506,10 @@ function dbGet(sql, params = []) {
 }
 
 function dbAll(sql, params = []) {
+  if (isMysqlProvider()) {
+    return mysqlPool.execute(sql, params).then(([rows]) => rows || []);
+  }
+
   return new Promise((resolve, reject) => {
     db.all(sql, params, (err, rows) => {
       if (err) {
@@ -378,6 +633,16 @@ async function findBookingByCheckoutSession(sessionId) {
   return dbGet(
     "SELECT id, payment_status AS paymentStatus FROM bookings WHERE checkout_session_id = ? LIMIT 1",
     [sessionId],
+  );
+}
+
+async function findBookingById(bookingId) {
+  if (!bookingId) {
+    return null;
+  }
+  return dbGet(
+    "SELECT id, payment_status AS paymentStatus, source FROM bookings WHERE id = ? LIMIT 1",
+    [bookingId],
   );
 }
 
@@ -537,6 +802,61 @@ async function listBookings(filters = {}) {
   );
 }
 
+async function getSiteContent() {
+  const row = await dbGet(
+    "SELECT content_json AS contentJson FROM site_content WHERE key = ? LIMIT 1",
+    ["homepage"],
+  );
+
+  if (!row?.contentJson) {
+    return { ...SITE_CONTENT_DEFAULTS };
+  }
+
+  try {
+    const parsed = JSON.parse(row.contentJson);
+    if (!parsed || typeof parsed !== "object") {
+      return { ...SITE_CONTENT_DEFAULTS };
+    }
+    return { ...SITE_CONTENT_DEFAULTS, ...parsed };
+  } catch {
+    return { ...SITE_CONTENT_DEFAULTS };
+  }
+}
+
+function sanitizeSiteContentInput(raw = {}) {
+  const safe = {};
+  for (const key of Object.keys(SITE_CONTENT_DEFAULTS)) {
+    const value = raw[key];
+    safe[key] =
+      typeof value === "string" ? value.trim() : SITE_CONTENT_DEFAULTS[key];
+  }
+  return safe;
+}
+
+async function saveSiteContent(content) {
+  const payload = sanitizeSiteContentInput(content);
+  if (isMysqlProvider()) {
+    await dbRun(
+      `INSERT INTO site_content (\`key\`, content_json, updated_at)
+       VALUES (?, ?, ?)
+       ON DUPLICATE KEY UPDATE
+         content_json = VALUES(content_json),
+         updated_at = VALUES(updated_at)`,
+      ["homepage", JSON.stringify(payload), new Date().toISOString()],
+    );
+  } else {
+    await dbRun(
+      `INSERT INTO site_content (key, content_json, updated_at)
+       VALUES (?, ?, ?)
+       ON CONFLICT(key) DO UPDATE SET
+         content_json = excluded.content_json,
+         updated_at = excluded.updated_at`,
+      ["homepage", JSON.stringify(payload), new Date().toISOString()],
+    );
+  }
+  return payload;
+}
+
 async function cleanupExpiredSessions() {
   await dbRun("DELETE FROM sessions WHERE expires_at <= ?", [Date.now()]);
 }
@@ -569,17 +889,18 @@ async function insertUser(user) {
       user.name,
       user.email,
       user.membershipType || "",
-      user.isAdmin ? 1 : 0,
+      toDbBoolean(user.isAdmin),
       user.passwordHash,
       user.createdAt,
     ],
   );
 }
 
-async function initDatabase() {
+async function initSqliteDatabase() {
+  const sqliteDriver = getSqliteDriver();
   await fs.mkdir(path.dirname(DB_FILE), { recursive: true });
   db = await new Promise((resolve, reject) => {
-    const instance = new sqlite3.Database(DB_FILE, (err) => {
+    const instance = new sqliteDriver.Database(DB_FILE, (err) => {
       if (err) {
         reject(err);
         return;
@@ -673,7 +994,157 @@ async function initDatabase() {
     "CREATE INDEX IF NOT EXISTS idx_bookings_booking_date ON bookings (booking_date)",
   );
 
+  await dbRun(`
+    CREATE TABLE IF NOT EXISTS site_content (
+      key TEXT PRIMARY KEY,
+      content_json TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    )
+  `);
+
+  const existingSiteContent = await dbGet(
+    "SELECT key FROM site_content WHERE key = ? LIMIT 1",
+    ["homepage"],
+  );
+  if (!existingSiteContent) {
+    await dbRun(
+      "INSERT INTO site_content (key, content_json, updated_at) VALUES (?, ?, ?)",
+      [
+        "homepage",
+        JSON.stringify(SITE_CONTENT_DEFAULTS),
+        new Date().toISOString(),
+      ],
+    );
+  }
+
   await cleanupExpiredSessions();
+}
+
+async function ensureMysqlIndex(tableName, indexName, columnsSql) {
+  try {
+    await dbRun(`CREATE INDEX ${indexName} ON ${tableName} (${columnsSql})`);
+  } catch (err) {
+    if (Number(err?.errno) !== 1061) {
+      throw err;
+    }
+  }
+}
+
+async function initMysqlDatabase() {
+  const mysqlDriver = getMysqlDriver();
+  if (process.env.DATABASE_URL) {
+    mysqlPool = mysqlDriver.createPool(process.env.DATABASE_URL);
+  } else {
+    mysqlPool = mysqlDriver.createPool({
+      host: process.env.MYSQL_HOST || "127.0.0.1",
+      port: Number(process.env.MYSQL_PORT || 3306),
+      user: process.env.MYSQL_USER || "root",
+      password: process.env.MYSQL_PASSWORD || "",
+      database: process.env.MYSQL_DATABASE || "smashforce",
+      waitForConnections: true,
+      connectionLimit: Number(process.env.MYSQL_POOL_SIZE || 10),
+      queueLimit: 0,
+    });
+  }
+
+  await dbRun(`
+    CREATE TABLE IF NOT EXISTS users (
+      id VARCHAR(64) PRIMARY KEY,
+      name VARCHAR(255) NOT NULL,
+      email VARCHAR(255) NOT NULL UNIQUE,
+      membership_type VARCHAR(32) NOT NULL DEFAULT '',
+      is_admin BOOLEAN NOT NULL DEFAULT FALSE,
+      password_hash VARCHAR(255) NOT NULL,
+      created_at VARCHAR(64) NOT NULL
+    )
+  `);
+
+  await dbRun(`
+    CREATE TABLE IF NOT EXISTS sessions (
+      token VARCHAR(128) PRIMARY KEY,
+      user_id VARCHAR(64) NOT NULL,
+      expires_at BIGINT NOT NULL,
+      created_at BIGINT NOT NULL,
+      CONSTRAINT fk_sessions_user
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    )
+  `);
+  await ensureMysqlIndex("sessions", "idx_sessions_expires_at", "expires_at");
+  await ensureMysqlIndex("sessions", "idx_sessions_user_id", "user_id");
+
+  await dbRun(`
+    CREATE TABLE IF NOT EXISTS bookings (
+      id VARCHAR(64) PRIMARY KEY,
+      user_id VARCHAR(64) NULL,
+      customer_name VARCHAR(255) NOT NULL,
+      customer_email VARCHAR(255) NOT NULL,
+      customer_phone VARCHAR(64) NOT NULL DEFAULT '',
+      facility VARCHAR(64) NOT NULL,
+      booking_date VARCHAR(64) NOT NULL,
+      booking_time VARCHAR(64) NOT NULL,
+      duration VARCHAR(64) NOT NULL DEFAULT '',
+      court VARCHAR(64) NOT NULL DEFAULT '',
+      membership_type VARCHAR(32) NOT NULL DEFAULT '',
+      applied_membership VARCHAR(32) NOT NULL DEFAULT 'none',
+      amount INT NOT NULL,
+      currency VARCHAR(10) NOT NULL DEFAULT 'usd',
+      payment_status VARCHAR(32) NOT NULL DEFAULT 'pending',
+      checkout_session_id VARCHAR(255) UNIQUE,
+      payment_intent_id VARCHAR(255) UNIQUE,
+      source VARCHAR(32) NOT NULL DEFAULT 'checkout',
+      created_at VARCHAR(64) NOT NULL,
+      updated_at VARCHAR(64) NOT NULL,
+      CONSTRAINT fk_bookings_user
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
+    )
+  `);
+  await ensureMysqlIndex("bookings", "idx_bookings_created_at", "created_at");
+  await ensureMysqlIndex("bookings", "idx_bookings_user_id", "user_id");
+  await ensureMysqlIndex(
+    "bookings",
+    "idx_bookings_booking_date",
+    "booking_date",
+  );
+
+  await dbRun(`
+    CREATE TABLE IF NOT EXISTS site_content (
+      \`key\` VARCHAR(64) PRIMARY KEY,
+      content_json LONGTEXT NOT NULL,
+      updated_at VARCHAR(64) NOT NULL
+    )
+  `);
+
+  const existingSiteContent = await dbGet(
+    "SELECT `key` AS `key` FROM site_content WHERE `key` = ? LIMIT 1",
+    ["homepage"],
+  );
+  if (!existingSiteContent) {
+    await dbRun(
+      "INSERT INTO site_content (`key`, content_json, updated_at) VALUES (?, ?, ?)",
+      [
+        "homepage",
+        JSON.stringify(SITE_CONTENT_DEFAULTS),
+        new Date().toISOString(),
+      ],
+    );
+  }
+
+  await cleanupExpiredSessions();
+}
+
+async function initDatabase() {
+  if (isMysqlProvider()) {
+    await initMysqlDatabase();
+    return;
+  }
+
+  if (DB_PROVIDER !== "sqlite") {
+    throw new Error(
+      `Unsupported DB_PROVIDER '${DB_PROVIDER}'. Use 'sqlite' or 'mysql'.`,
+    );
+  }
+
+  await initSqliteDatabase();
 }
 
 async function maybeMigrateLegacyUsers() {
@@ -694,18 +1165,33 @@ async function maybeMigrateLegacyUsers() {
       if (!user?.id || !user?.email || !user?.passwordHash || !user?.name) {
         continue;
       }
-      await dbRun(
-        "INSERT OR IGNORE INTO users (id, name, email, membership_type, is_admin, password_hash, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
-        [
-          String(user.id),
-          String(user.name),
-          String(user.email).toLowerCase(),
-          String(user.membershipType || ""),
-          user.isAdmin ? 1 : 0,
-          String(user.passwordHash),
-          String(user.createdAt || new Date().toISOString()),
-        ],
-      );
+      if (isMysqlProvider()) {
+        await dbRun(
+          "INSERT IGNORE INTO users (id, name, email, membership_type, is_admin, password_hash, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+          [
+            String(user.id),
+            String(user.name),
+            String(user.email).toLowerCase(),
+            String(user.membershipType || ""),
+            toDbBoolean(user.isAdmin),
+            String(user.passwordHash),
+            String(user.createdAt || new Date().toISOString()),
+          ],
+        );
+      } else {
+        await dbRun(
+          "INSERT OR IGNORE INTO users (id, name, email, membership_type, is_admin, password_hash, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+          [
+            String(user.id),
+            String(user.name),
+            String(user.email).toLowerCase(),
+            String(user.membershipType || ""),
+            toDbBoolean(user.isAdmin),
+            String(user.passwordHash),
+            String(user.createdAt || new Date().toISOString()),
+          ],
+        );
+      }
     }
   } catch (err) {
     console.error("Legacy user migration skipped:", err.message);
@@ -818,7 +1304,10 @@ async function requireAuth(req, res, next) {
     return next();
   } catch (err) {
     console.error("Auth guard error:", err.message);
-    return res.status(500).json({ error: "Could not verify authentication." });
+    return res.status(500).json({
+      error:
+        "Authentication verification failed: Unable to check session validity. Please try logging in again.",
+    });
   }
 }
 
@@ -835,7 +1324,10 @@ async function requireAdmin(req, res, next) {
     return next();
   } catch (err) {
     console.error("Admin guard error:", err.message);
-    return res.status(500).json({ error: "Could not verify authentication." });
+    return res.status(500).json({
+      error:
+        "Admin authentication verification failed: Unable to validate admin privileges. Please check your session.",
+    });
   }
 }
 
@@ -898,7 +1390,10 @@ app.post("/signup", signupRateLimit, async (req, res) => {
     return res.status(201).json({ user: sanitizeUser(user) });
   } catch (err) {
     console.error("Signup error:", err.message);
-    return res.status(500).json({ error: "Could not create account." });
+    return res.status(500).json({
+      error:
+        "Account creation failed: Unable to process your registration at this time. Please try again or contact support if this persists.",
+    });
   }
 });
 
@@ -927,7 +1422,10 @@ app.post("/login", loginRateLimit, async (req, res) => {
     return res.json({ user: sanitizeUser(user) });
   } catch (err) {
     console.error("Login error:", err.message);
-    return res.status(500).json({ error: "Could not log in." });
+    return res.status(500).json({
+      error:
+        "Login failed: Unable to process your login request. Please verify your credentials and try again.",
+    });
   }
 });
 
@@ -945,12 +1443,28 @@ app.get("/me", requireAuth, async (req, res) => {
     return res.json({ user: sanitizeUser(req.user) });
   } catch (err) {
     console.error("Me endpoint error:", err.message);
-    return res.status(500).json({ error: "Could not fetch current user." });
+    return res.status(500).json({
+      error:
+        "Profile retrieval failed: Unable to fetch your user information. Please try refreshing or logging in again.",
+    });
   }
 });
 
 app.get("/member-profile", requireAuth, (req, res) => {
   return res.json({ user: sanitizeUser(req.user) });
+});
+
+app.get("/content", async (_req, res) => {
+  try {
+    const content = await getSiteContent();
+    return res.json({ content });
+  } catch (err) {
+    console.error("Content fetch error:", err.message);
+    return res.status(500).json({
+      error:
+        "Content loading failed: Unable to retrieve site information. Please refresh the page and try again.",
+    });
+  }
 });
 
 app.get("/my-bookings", requireAuth, async (req, res) => {
@@ -959,7 +1473,10 @@ app.get("/my-bookings", requireAuth, async (req, res) => {
     return res.json({ bookings });
   } catch (err) {
     console.error("My bookings error:", err.message);
-    return res.status(500).json({ error: "Could not fetch bookings." });
+    return res.status(500).json({
+      error:
+        "Bookings retrieval failed: Unable to fetch your booking history. Please try again later.",
+    });
   }
 });
 
@@ -976,7 +1493,79 @@ app.get("/admin/bookings", requireAdmin, async (req, res) => {
     return res.json({ bookings });
   } catch (err) {
     console.error("Admin bookings error:", err.message);
-    return res.status(500).json({ error: "Could not fetch admin bookings." });
+    return res.status(500).json({
+      error:
+        "Admin bookings retrieval failed: Unable to fetch booking data. Please check your filters and try again.",
+    });
+  }
+});
+
+app.post(
+  "/admin/bookings/:bookingId/mark-paid",
+  requireSameOrigin,
+  requireAdmin,
+  async (req, res) => {
+    try {
+      const bookingId = String(req.params.bookingId || "").trim();
+      if (!bookingId) {
+        return res.status(400).json({ error: "bookingId is required." });
+      }
+
+      const booking = await findBookingById(bookingId);
+      if (!booking) {
+        return res.status(404).json({ error: "Booking not found." });
+      }
+
+      const status = String(booking.paymentStatus || "").toLowerCase();
+      if (status === "paid") {
+        return res.json({
+          ok: true,
+          message: "Booking is already marked paid.",
+        });
+      }
+
+      if (status !== "pending_in_person") {
+        return res.status(400).json({
+          error:
+            "Only pending in-person bookings can be marked paid with this action.",
+        });
+      }
+
+      await updateBookingById(bookingId, { status: "paid" });
+      return res.json({ ok: true, message: "Booking marked as paid." });
+    } catch (err) {
+      console.error("Mark paid error:", err.message);
+      return res.status(500).json({
+        error:
+          "Mark paid failed: Unable to update booking payment status. Please try again.",
+      });
+    }
+  },
+);
+
+app.get("/admin/content", requireAdmin, async (_req, res) => {
+  try {
+    const content = await getSiteContent();
+    return res.json({ content });
+  } catch (err) {
+    console.error("Admin content fetch error:", err.message);
+    return res.status(500).json({
+      error:
+        "Admin content loading failed: Unable to retrieve site content for editing. Please try again.",
+    });
+  }
+});
+
+app.put("/admin/content", requireSameOrigin, requireAdmin, async (req, res) => {
+  try {
+    const content = await saveSiteContent(req.body || {});
+    return res.json({ ok: true, content });
+  } catch (err) {
+    console.error("Admin content save error:", err.message);
+    return res.status(500).json({
+      error:
+        "Content save failed: Unable to update site content. Your changes were not saved. Please try again.",
+    });
   }
 });
 
@@ -998,7 +1587,10 @@ app.post(
       return res.json({ ok: true, summary });
     } catch (err) {
       console.error("Reconcile bookings error:", err.message);
-      return res.status(500).json({ error: "Could not reconcile bookings." });
+      return res.status(500).json({
+        error:
+          "Booking reconciliation failed: Unable to sync bookings with Stripe. Please check the logs and try again.",
+      });
     }
   },
 );
@@ -1028,7 +1620,10 @@ app.post(
     if (!user) {
       return res.status(404).json({ error: "User not found." });
     }
-    await dbRun("UPDATE users SET is_admin = 1 WHERE id = ?", [user.id]);
+    await dbRun("UPDATE users SET is_admin = ? WHERE id = ?", [
+      toDbBoolean(true),
+      user.id,
+    ]);
     return res.json({ ok: true, message: `${email} is now an admin.` });
   },
 );
@@ -1081,6 +1676,16 @@ function normalizeBookingPayload(body = {}, user = null) {
     }
   }
 
+  const promo = resolvePromo(body.promoCode);
+  if (String(body.promoCode || "").trim() && !promo) {
+    return { error: "Invalid promo code." };
+  }
+
+  const promoPricing = applyPromoDiscount(amount, promo);
+  if (promoPricing.promoError) {
+    return { error: promoPricing.promoError };
+  }
+
   return {
     facility,
     date: String(body.date || "").trim(),
@@ -1090,13 +1695,45 @@ function normalizeBookingPayload(body = {}, user = null) {
     name: String(body.name || "").trim(),
     email: String(body.email || "").trim(),
     phone: String(body.phone || "").trim(),
-    amount,
+    amount: promoPricing.amountAfterDiscount,
+    amountBeforeDiscount: promoPricing.amountBeforeDiscount,
+    discountAmount: promoPricing.discountAmount,
+    promoCode: promoPricing.appliedPromoCode,
     membershipType: storedMembershipType || "",
     appliedMembership,
     memberUserId: user?.id || "",
     label: price.label,
   };
 }
+
+app.post(
+  "/validate-promo",
+  requireSameOrigin,
+  bookingRateLimit,
+  async (req, res) => {
+    try {
+      const user = await getRequestUser(req, res);
+      const payload = normalizeBookingPayload(req.body, user);
+      if (payload.error) {
+        return res.status(400).json({ error: payload.error });
+      }
+
+      return res.json({
+        ok: true,
+        promoCode: payload.promoCode || "",
+        amountBeforeDiscount: payload.amountBeforeDiscount,
+        discountAmount: payload.discountAmount,
+        amountAfterDiscount: payload.amount,
+      });
+    } catch (err) {
+      console.error("Promo validation error:", err.message);
+      return res.status(500).json({
+        error:
+          "Promo validation failed: Unable to validate this promo code right now. Please try again.",
+      });
+    }
+  },
+);
 
 app.post(
   "/create-checkout-session",
@@ -1162,6 +1799,11 @@ app.post(
           phone: payload.phone,
           membershipType: payload.membershipType,
           appliedMembership: payload.appliedMembership,
+          promoCode: payload.promoCode,
+          discountAmount: String(payload.discountAmount || 0),
+          amountBeforeDiscount: String(
+            payload.amountBeforeDiscount || payload.amount,
+          ),
           memberUserId: payload.memberUserId,
         },
         success_url: `${APP_URL}/booking.html?checkout=success&session_id={CHECKOUT_SESSION_ID}`,
@@ -1186,9 +1828,135 @@ app.post(
           );
         }
       }
-      return res
-        .status(500)
-        .json({ error: "Could not create checkout session." });
+      return res.status(500).json({
+        error:
+          "Checkout session creation failed: Unable to initialize Stripe payment session. Please verify your booking details and try again.",
+      });
+    }
+  },
+);
+
+app.post(
+  "/create-inperson-booking",
+  requireSameOrigin,
+  requireAdmin,
+  bookingRateLimit,
+  async (req, res) => {
+    try {
+      // Walk-in bookings are captured by staff at the counter and should not
+      // inherit logged-in admin membership pricing.
+      const payload = normalizeBookingPayload(
+        {
+          ...req.body,
+          isMember: false,
+          membershipType: "",
+        },
+        null,
+      );
+
+      if (payload.error) {
+        return res.status(400).json({ error: payload.error });
+      }
+
+      const bookingId = await insertBooking({
+        userId: null,
+        name: payload.name,
+        email: payload.email,
+        phone: payload.phone,
+        facility: payload.facility,
+        date: payload.date,
+        time: payload.time,
+        duration: payload.duration,
+        court: payload.court,
+        membershipType: "",
+        appliedMembership: "none",
+        amount: payload.amount,
+        currency: "usd",
+        paymentStatus: "pending_in_person",
+        source: "in-person",
+      });
+
+      return res.json({
+        ok: true,
+        bookingId,
+        message: "Walk-in booking saved as pending in-person payment.",
+      });
+    } catch (err) {
+      console.error("In-person booking error:", err.message);
+      return res.status(500).json({
+        error:
+          "In-person booking creation failed: Unable to save walk-in booking. Please try again.",
+      });
+    }
+  },
+);
+
+app.post(
+  "/create-membership-checkout-session",
+  requireSameOrigin,
+  requireAuth,
+  async (req, res) => {
+    try {
+      if (!requireStripeConfigured(res)) {
+        return;
+      }
+
+      const requestedMembershipType = normalizeMembershipType(
+        req.body?.membershipType,
+      );
+      if (!requestedMembershipType) {
+        return res.status(400).json({ error: "Invalid membership type." });
+      }
+
+      const userMembershipType = normalizeMembershipType(
+        req.user?.membershipType,
+      );
+      if (requestedMembershipType !== userMembershipType) {
+        return res.status(400).json({
+          error: "Requested membership tier does not match your account.",
+        });
+      }
+
+      const membershipPrice = MEMBERSHIP_PRICES[requestedMembershipType];
+      if (!membershipPrice) {
+        return res.status(400).json({ error: "Unsupported membership tier." });
+      }
+
+      const session = await stripe.checkout.sessions.create({
+        mode: "payment",
+        payment_method_types: ["card"],
+        line_items: [
+          {
+            quantity: 1,
+            price_data: {
+              currency: "usd",
+              unit_amount: membershipPrice.amount,
+              product_data: {
+                name: membershipPrice.label,
+                description: "Membership signup payment",
+              },
+            },
+          },
+        ],
+        customer_email: req.user.email || undefined,
+        metadata: {
+          checkoutType: "membership",
+          membershipType: requestedMembershipType,
+          memberUserId: req.user.id || "",
+          email: req.user.email || "",
+          name: req.user.name || "",
+        },
+        success_url: `${APP_URL}/smash-force-academy.html?membership=success&session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${APP_URL}/smash-force-academy.html?membership=cancel`,
+      });
+
+      return res.json({ url: session.url, sessionId: session.id });
+    } catch (err) {
+      console.error("Membership checkout session error:", err.message);
+      return res.status(500).json({
+        error:
+          "Membership checkout creation failed: Unable to start membership payment process. Please try again or contact support.",
+      });
     }
   },
 );
@@ -1214,7 +1982,10 @@ app.get("/checkout-session-status", async (req, res) => {
     });
   } catch (err) {
     console.error("Session status error:", err.message);
-    return res.status(500).json({ error: "Could not fetch checkout session." });
+    return res.status(500).json({
+      error:
+        "Checkout session status retrieval failed: Unable to fetch payment session details. Please try again.",
+    });
   }
 });
 
@@ -1269,6 +2040,11 @@ app.post(
           phone: payload.phone,
           membershipType: payload.membershipType,
           appliedMembership: payload.appliedMembership,
+          promoCode: payload.promoCode,
+          discountAmount: String(payload.discountAmount || 0),
+          amountBeforeDiscount: String(
+            payload.amountBeforeDiscount || payload.amount,
+          ),
           memberUserId: payload.memberUserId,
         },
       });
@@ -1291,9 +2067,10 @@ app.post(
           );
         }
       }
-      return res
-        .status(500)
-        .json({ error: "Could not create payment intent." });
+      return res.status(500).json({
+        error:
+          "Payment intent creation failed: Unable to process your payment. Please verify your information and try again.",
+      });
     }
   },
 );
@@ -1323,8 +2100,10 @@ app.post(
         webhookSecret,
       );
     } catch (err) {
-      console.error("Webhook signature failed:", err.message);
-      return res.status(400).send(`Webhook Error: ${err.message}`);
+      console.error("Webhook signature verification failed:", err.message);
+      return res
+        .status(400)
+        .send(`Webhook signature verification failed: ${err.message}`);
     }
 
     try {
@@ -1360,24 +2139,42 @@ app.post(
       return res.json({ received: true });
     } catch (err) {
       console.error("Webhook processing failed:", err.message);
-      return res.status(500).send("Webhook processing failed.");
+      return res
+        .status(500)
+        .send(
+          "Webhook event processing failed: Unable to handle Stripe event. Please contact support with the event ID.",
+        );
     }
   },
 );
 
-async function startServer() {
+async function startServer(port = Number(process.env.PORT) || 3000) {
   try {
     await initDatabase();
     await maybeMigrateLegacyUsers();
 
-    const PORT = process.env.PORT || 3000;
-    app.listen(PORT, () => {
-      console.log(`Server listening on port ${PORT}`);
+    return await new Promise((resolve, reject) => {
+      const server = app.listen(port, () => {
+        console.log(`Server listening on port ${port}`);
+        resolve(server);
+      });
+      server.on("error", reject);
     });
   } catch (err) {
-    console.error("Failed to start server:", err.message);
-    process.exit(1);
+    console.error("Server startup failed:", err.message);
+    if (require.main === module) {
+      console.error(`ERROR: Cannot start server - ${err.message}`);
+      console.error(
+        `DETAILS: Check database permissions, .env configuration, and ensure all required dependencies are installed.`,
+      );
+      process.exit(1);
+    }
+    throw err;
   }
 }
 
-startServer();
+if (require.main === module) {
+  startServer();
+}
+
+module.exports = { app, startServer };
