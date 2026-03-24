@@ -82,13 +82,40 @@ async function main() {
   try {
     // Split on statement boundaries so we can execute each one individually,
     // which avoids needing multipleStatements when connecting via URL.
+    //
+    // For idempotency, rewrite any bare `CREATE INDEX` to
+    // `CREATE INDEX IF NOT EXISTS` so re-runs don't fail when the index
+    // already exists (MySQL 8.0.12+ supports the IF NOT EXISTS clause).
+    // As a belt-and-suspenders fallback we also swallow ER_DUP_KEYNAME
+    // (errno 1061) for index statements on older MySQL versions.
     const statements = sql
       .split(/;\s*\n/)
       .map((s) => s.trim())
-      .filter((s) => s.length > 0 && !s.startsWith("--"));
+      .filter((s) => s.length > 0 && !s.startsWith("--"))
+      .map((s) =>
+        s.replace(/^CREATE INDEX\b/i, "CREATE INDEX IF NOT EXISTS"),
+      );
 
     for (const statement of statements) {
-      await connection.query(statement);
+      try {
+        await connection.query(statement);
+      } catch (err) {
+        // ER_DUP_KEYNAME (1061): index already exists — safe to ignore when
+        // the statement is a CREATE INDEX (covers older MySQL that doesn't
+        // support IF NOT EXISTS on indexes).
+        const isDupKey =
+          err.errno === 1061 || err.code === "ER_DUP_KEYNAME";
+        const isIndexStmt = /^CREATE\s+(?:UNIQUE\s+)?INDEX\b/i.test(
+          statement,
+        );
+        if (isDupKey && isIndexStmt) {
+          console.warn(
+            `WARN: Index already exists, skipping: ${statement.split("\n")[0]}`,
+          );
+          continue;
+        }
+        throw err;
+      }
     }
 
     console.log("Migration completed successfully.");
