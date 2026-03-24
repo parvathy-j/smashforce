@@ -1,10 +1,32 @@
 // ── Mobile Nav ──
-document.getElementById("burger").addEventListener("click", () => {
-  document.getElementById("mobNav").classList.toggle("open");
+const burgerBtn = document.getElementById("burger");
+const mobNav = document.getElementById("mobNav");
+
+burgerBtn?.addEventListener("click", (event) => {
+  event.stopPropagation();
+  mobNav?.classList.toggle("open");
 });
+
 function closeMob() {
-  document.getElementById("mobNav").classList.remove("open");
+  mobNav?.classList.remove("open");
 }
+
+document.addEventListener("click", (event) => {
+  if (!mobNav || !burgerBtn || !mobNav.classList.contains("open")) {
+    return;
+  }
+
+  const target = event.target;
+  if (!(target instanceof Node)) {
+    return;
+  }
+
+  if (mobNav.contains(target) || burgerBtn.contains(target)) {
+    return;
+  }
+
+  closeMob();
+});
 
 const authState = { user: null };
 
@@ -113,7 +135,12 @@ async function fetchCurrentUser() {
   }
 }
 
-async function submitAuth(path, payload, successMessage) {
+async function submitAuth(
+  path,
+  payload,
+  successMessage,
+  { autoClose = true } = {},
+) {
   try {
     setAuthMessage("", "");
     const res = await fetch(path, {
@@ -128,12 +155,16 @@ async function submitAuth(path, payload, successMessage) {
     authState.user = data.user || null;
     renderAuthState();
     setAuthMessage("success", successMessage);
-    setTimeout(() => {
-      closeAuthModal();
-      setAuthMessage("", "");
-    }, 700);
+    if (autoClose) {
+      setTimeout(() => {
+        closeAuthModal();
+        setAuthMessage("", "");
+      }, 700);
+    }
+    return data;
   } catch (err) {
     setAuthMessage("error", err.message || "Authentication failed.");
+    return null;
   }
 }
 
@@ -194,16 +225,66 @@ document.querySelectorAll(".mob-nav a").forEach((a) => {
   a.addEventListener("click", closeMob);
 });
 
-// ── Admin Managed Content (localStorage-backed starter CMS) ──
-const ADMIN_CONTENT_KEY = "sfa_admin_content";
+function initHeroParallax() {
+  const hero = document.querySelector(".hero");
+  const heroBg = document.querySelector(".hero-bg");
+  const gridBg = document.querySelector(".court-grid-bg");
+  const heroGlow = document.querySelector(".hero-glow");
 
-function applyAdminContent() {
+  if (!hero || !heroBg || !gridBg || !heroGlow) {
+    return;
+  }
+
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    return;
+  }
+
+  let ticking = false;
+
+  const updateParallax = () => {
+    ticking = false;
+
+    const rect = hero.getBoundingClientRect();
+    const viewportHeight = window.innerHeight || 1;
+
+    // Keep animation active only while the hero is near the viewport.
+    if (rect.bottom < -120 || rect.top > viewportHeight + 120) {
+      return;
+    }
+
+    const travel = Math.min(Math.max(window.scrollY, 0), viewportHeight * 1.6);
+    heroBg.style.transform = `translate3d(0, ${travel * 0.28}px, 0) scale(1.1)`;
+    gridBg.style.transform = `translate3d(0, ${travel * 0.4}px, 0)`;
+    heroGlow.style.transform = `translate3d(${travel * 0.1}px, ${travel * -0.24}px, 0)`;
+  };
+
+  const requestTick = () => {
+    if (ticking) {
+      return;
+    }
+    ticking = true;
+    window.requestAnimationFrame(updateParallax);
+  };
+
+  window.addEventListener("scroll", requestTick, { passive: true });
+  window.addEventListener("resize", requestTick);
+  requestTick();
+}
+
+initHeroParallax();
+
+// ── Admin Managed Content (server-backed CMS) ──
+async function applyAdminContent() {
   let data = null;
   try {
-    const raw = localStorage.getItem(ADMIN_CONTENT_KEY);
-    data = raw ? JSON.parse(raw) : null;
+    const response = await fetch("/content");
+    if (!response.ok) {
+      return;
+    }
+    const payload = await response.json();
+    data = payload?.content || null;
   } catch (err) {
-    console.warn("Could not parse admin content settings", err);
+    console.warn("Could not load admin content settings", err);
     return;
   }
 
@@ -290,16 +371,68 @@ document
   .getElementById("signupForm")
   ?.addEventListener("submit", async (event) => {
     event.preventDefault();
-    await submitAuth(
+
+    const membershipType = document.getElementById(
+      "signupMembershipType",
+    ).value;
+    const signupResult = await submitAuth(
       "/signup",
       {
         name: document.getElementById("signupName").value.trim(),
         email: document.getElementById("signupEmail").value.trim(),
-        membershipType: document.getElementById("signupMembershipType").value,
+        membershipType,
         password: document.getElementById("signupPassword").value,
       },
-      "Account created successfully.",
+      membershipType
+        ? "Account created. Redirecting to payment..."
+        : "Account created successfully.",
+      { autoClose: !membershipType },
     );
+
+    if (!signupResult || !membershipType) {
+      return;
+    }
+
+    try {
+      const checkoutRes = await fetch("/create-membership-checkout-session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ membershipType }),
+      });
+      const checkoutData = await readJsonResponse(checkoutRes);
+
+      if (!checkoutRes.ok) {
+        throw new Error(
+          checkoutData?.error || "Could not start membership checkout.",
+        );
+      }
+
+      if (!checkoutData?.url) {
+        throw new Error("Missing checkout URL from server.");
+      }
+
+      window.location.href = checkoutData.url;
+    } catch (err) {
+      setAuthMessage(
+        "error",
+        err.message || "Could not start membership checkout.",
+      );
+    }
   });
 
 fetchCurrentUser();
+
+// Membership CTAs open the auth modal (login tab) for both buttons.
+document.querySelectorAll("#membership .btn-m").forEach((btn) => {
+  btn.addEventListener("click", (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+
+    openAuthModal("login");
+
+    const membershipSelect = document.getElementById("signupMembershipType");
+    if (membershipSelect) {
+      membershipSelect.value = btn.dataset.membership || "";
+    }
+  });
+});

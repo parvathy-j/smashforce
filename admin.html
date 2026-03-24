@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Smash Force Admin Panel</title>
+    <title>Smashforce Badminton Centre Admin Panel</title>
     <link
       href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800;900&family=Outfit:wght@300;400;500;600;700&display=swap"
       rel="stylesheet"
@@ -14,7 +14,7 @@
     <main class="admin-wrap">
       <header class="admin-head">
         <div>
-          <p class="eyebrow">Smash Force Academy</p>
+          <p class="eyebrow">Smashforce Badminton Centre</p>
           <h1>Website Admin Panel</h1>
           <p class="sub"></p>
         </div>
@@ -97,6 +97,7 @@
             <select id="bookingsStatusFilter">
               <option value="">All</option>
               <option value="pending">Pending</option>
+              <option value="pending_in_person">Pending In Person</option>
               <option value="paid">Paid</option>
               <option value="expired">Expired</option>
               <option value="failed">Failed</option>
@@ -123,11 +124,12 @@
                 <th>Time</th>
                 <th>Amount</th>
                 <th>Status</th>
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody id="bookingsTableBody">
               <tr>
-                <td colspan="7">Loading bookings...</td>
+                <td colspan="8">Loading bookings...</td>
               </tr>
             </tbody>
           </table>

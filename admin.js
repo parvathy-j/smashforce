@@ -1,5 +1,3 @@
-const STORAGE_KEY = "sfa_admin_content";
-
 const defaults = {
   logoTagline: "Experience the Power of the Smash.",
   heroAnnouncement: "Now accepting bookings",
@@ -18,14 +16,16 @@ const defaults = {
   floatingButtonText: "🏸Book Now!",
 };
 
-function getStoredData() {
+async function loadAdminContent() {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return { ...defaults };
-    const parsed = JSON.parse(raw);
-    return { ...defaults, ...parsed };
+    const response = await fetch("/admin/content");
+    if (!response.ok) {
+      throw new Error("Could not load admin content.");
+    }
+    const payload = await response.json();
+    return { ...defaults, ...(payload.content || {}) };
   } catch (err) {
-    console.warn("Failed to parse admin data", err);
+    setStatus(err.message || "Could not load admin content.");
     return { ...defaults };
   }
 }
@@ -53,6 +53,25 @@ function formatMoney(cents, currency = "usd") {
   }
 }
 
+async function markBookingPaid(bookingId) {
+  try {
+    const response = await fetch(
+      `/admin/bookings/${encodeURIComponent(bookingId)}/mark-paid`,
+      {
+        method: "POST",
+      },
+    );
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data?.error || "Could not mark booking paid.");
+    }
+    setStatus(data?.message || "Booking marked paid.");
+    await loadAdminBookings();
+  } catch (err) {
+    setStatus(err.message || "Could not mark booking paid.");
+  }
+}
+
 function renderBookingRows(bookings = []) {
   const body = document.getElementById("bookingsTableBody");
   if (!body) {
@@ -63,7 +82,7 @@ function renderBookingRows(bookings = []) {
   if (!Array.isArray(bookings) || bookings.length === 0) {
     const tr = document.createElement("tr");
     const td = document.createElement("td");
-    td.colSpan = 7;
+    td.colSpan = 8;
     td.textContent = "No bookings found for current filters.";
     tr.appendChild(td);
     body.appendChild(tr);
@@ -83,6 +102,7 @@ function renderBookingRows(bookings = []) {
     const status = String(booking.paymentStatus || "pending").toLowerCase();
 
     const cells = [
+      document.createElement("td"),
       document.createElement("td"),
       document.createElement("td"),
       document.createElement("td"),
@@ -113,6 +133,17 @@ function renderBookingRows(bookings = []) {
     statusPill.className = `status-pill ${status}`;
     statusPill.textContent = status;
     cells[6].appendChild(statusPill);
+
+    if (status === "pending_in_person") {
+      const markPaidBtn = document.createElement("button");
+      markPaidBtn.type = "button";
+      markPaidBtn.className = "btn booking-action-btn";
+      markPaidBtn.textContent = "Mark Paid";
+      markPaidBtn.addEventListener("click", () => markBookingPaid(booking.id));
+      cells[7].appendChild(markPaidBtn);
+    } else {
+      cells[7].textContent = "-";
+    }
 
     cells.forEach((cell) => tr.appendChild(cell));
     body.appendChild(tr);
@@ -200,19 +231,30 @@ function readForm() {
   return payload;
 }
 
-function saveData() {
+async function saveData() {
   const payload = readForm();
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
-  setStatus("Saved. Refresh the website tab to see updated content.");
+  try {
+    const response = await fetch("/admin/content", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data?.error || "Could not save content.");
+    }
+    fillForm({ ...defaults, ...(data.content || {}) });
+    setStatus("Saved. Refresh the website tab to see updated content.");
+  } catch (err) {
+    setStatus(err.message || "Could not save content.");
+  }
 }
 
-function resetData() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(defaults));
+async function resetData() {
   fillForm(defaults);
+  await saveData();
   setStatus("Reset to defaults.");
 }
-
-fillForm(getStoredData());
 
 document.getElementById("saveBtn").addEventListener("click", saveData);
 document.getElementById("resetBtn").addEventListener("click", resetData);
@@ -233,8 +275,10 @@ document
   .getElementById("bookingsEmailFilter")
   ?.addEventListener("input", loadAdminBookings);
 
-requireAdminSession().then((ok) => {
+requireAdminSession().then(async (ok) => {
   if (ok) {
+    const content = await loadAdminContent();
+    fillForm(content);
     loadAdminBookings();
   }
 });

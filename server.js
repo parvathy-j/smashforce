@@ -8,22 +8,41 @@ const Stripe = require("stripe");
 const crypto = require("crypto");
 const fs = require("fs/promises");
 const path = require("path");
+const { Pool } = require("pg");
 
 const app = express();
 
 const stripe = process.env.STRIPE_SECRET_KEY
   ? Stripe(process.env.STRIPE_SECRET_KEY)
   : null;
-const APP_URL = process.env.APP_URL || "http://localhost:3000";
+const APP_URL = String(process.env.APP_URL || "http://localhost:3000").trim();
 const CMS_SERVING_URL = String(process.env.CMS_SERVING_URL || "").trim();
 const IS_PRODUCTION = process.env.NODE_ENV === "production";
 const TRUST_PROXY = process.env.TRUST_PROXY === "1" || IS_PRODUCTION;
-const APP_ORIGIN = new URL(APP_URL).origin;
-const EXTRA_ALLOWED_ORIGINS = String(process.env.ALLOWED_ORIGINS || "")
-  .split(",")
-  .map((origin) => origin.trim())
-  .filter(Boolean);
-const CSRF_ALLOWED_ORIGINS = new Set([APP_ORIGIN, ...EXTRA_ALLOWED_ORIGINS]);
+
+function resolveAppOrigin(rawUrl) {
+  const value = String(rawUrl || "").trim();
+  const candidates = [value, `https://${value}`];
+
+  for (const candidate of candidates) {
+    if (!candidate) {
+      continue;
+    }
+    try {
+      return new URL(candidate).origin;
+    } catch {
+      // Try the next candidate format.
+    }
+  }
+
+  const fallback = "http://localhost:3000";
+  console.warn(
+    `Invalid APP_URL '${value}'. Falling back to ${fallback} for origin checks.`,
+  );
+  return fallback;
+}
+
+const APP_ORIGIN = resolveAppOrigin(APP_URL);
 const SESSION_COOKIE_NAME = "sf_session";
 const SESSION_COOKIE_DOMAIN = String(
   process.env.SESSION_COOKIE_DOMAIN || "",
@@ -33,53 +52,34 @@ const USERS_FILE =
   process.env.USERS_FILE || path.join(__dirname, "data", "users.json");
 const DB_FILE =
   process.env.DB_FILE || path.join(__dirname, "data", "smashforce.db");
-const DB_PROVIDER = String(
-  process.env.DB_PROVIDER || (process.env.DATABASE_URL ? "mysql" : "sqlite"),
-)
+const DB_PROVIDER = String(process.env.DB_PROVIDER || "sqlite")
   .trim()
   .toLowerCase();
 let db = null;
+let pgPool = null;
 let mysqlPool = null;
 let sqlite3 = null;
 let mysql = null;
 const rateLimitBuckets = new Map();
 
-function getSqliteDriver() {
-  if (sqlite3) {
-    return sqlite3;
-  }
-
-  try {
-    sqlite3 = require("sqlite3").verbose();
-    return sqlite3;
-  } catch {
-    throw new Error(
-      "sqlite3 dependency is unavailable. Install sqlite3 or set DB_PROVIDER=mysql with a valid DATABASE_URL.",
-    );
-  }
-}
-
-function getMysqlDriver() {
-  if (mysql) {
-    return mysql;
-  }
-
-  try {
-    mysql = require("mysql2/promise");
-    return mysql;
-  } catch {
-    throw new Error(
-      "mysql2 dependency is unavailable. Install mysql2 or set DB_PROVIDER=sqlite.",
-    );
-  }
+function isPostgresProvider() {
+  return DB_PROVIDER === "postgres" || DB_PROVIDER === "postgresql";
 }
 
 function isMysqlProvider() {
-  return DB_PROVIDER === "mysql";
+  return DB_PROVIDER === "mysql" || DB_PROVIDER === "mariadb";
+}
+
+function toPostgresSql(sql) {
+  let index = 0;
+  return String(sql).replace(/\?/g, () => {
+    index += 1;
+    return `$${index}`;
+  });
 }
 
 function toDbBoolean(value) {
-  if (isMysqlProvider()) {
+  if (isPostgresProvider()) {
     return Boolean(value);
   }
   return value ? 1 : 0;
@@ -96,39 +96,6 @@ function normalizeSameSite(value) {
     return "None";
   }
   return "Lax";
-}
-
-function isAllowedLocalDevOrigin(origin) {
-  if (IS_PRODUCTION) {
-    return false;
-  }
-
-  try {
-    const url = new URL(origin);
-    if (url.protocol !== "http:" && url.protocol !== "https:") {
-      return false;
-    }
-
-    return (
-      url.hostname === "localhost" ||
-      url.hostname === "127.0.0.1" ||
-      url.hostname === "[::1]"
-    );
-  } catch {
-    return false;
-  }
-}
-
-function isAllowedRequestOrigin(origin) {
-  if (!origin) {
-    return false;
-  }
-
-  if (CSRF_ALLOWED_ORIGINS.has(origin)) {
-    return true;
-  }
-
-  return isAllowedLocalDevOrigin(origin);
 }
 
 const SESSION_COOKIE_SAMESITE = normalizeSameSite(
@@ -151,7 +118,7 @@ const FACILITY_PRICES = {
   standard: {
     label: "Standard Court Booking",
     amount: 2500,
-    memberAmount: 2000,
+    memberAmount: 2200,
   },
   single: {
     label: "Single Court Booking",
@@ -161,8 +128,8 @@ const FACILITY_PRICES = {
   table: {
     label: "Multi-Game Table Booking",
     amount: 1500,
-    memberAmount: 1500,
-    allAccessAmount: 800,
+    memberAmount: 1200,
+    allAccessAmount: 1200,
   },
 };
 
@@ -428,7 +395,7 @@ function requireSameOrigin(req, res, next) {
     }
   }
 
-  if (!isAllowedRequestOrigin(requestOrigin)) {
+  if (!requestOrigin || requestOrigin !== APP_ORIGIN) {
     return res.status(403).json({ error: "Blocked by CSRF origin policy." });
   }
 
@@ -474,6 +441,10 @@ async function ensureUsersFile() {
 }
 
 function dbRun(sql, params = []) {
+  if (isPostgresProvider()) {
+    return pgPool.query(toPostgresSql(sql), params);
+  }
+
   if (isMysqlProvider()) {
     return mysqlPool.execute(sql, params).then(([result]) => result);
   }
@@ -490,8 +461,16 @@ function dbRun(sql, params = []) {
 }
 
 function dbGet(sql, params = []) {
+  if (isPostgresProvider()) {
+    return pgPool
+      .query(toPostgresSql(sql), params)
+      .then((result) => result.rows[0] || null);
+  }
+
   if (isMysqlProvider()) {
-    return mysqlPool.execute(sql, params).then(([rows]) => rows[0] || null);
+    return mysqlPool
+      .execute(sql, params)
+      .then(([rows]) => (rows && rows[0] ? rows[0] : null));
   }
 
   return new Promise((resolve, reject) => {
@@ -506,6 +485,12 @@ function dbGet(sql, params = []) {
 }
 
 function dbAll(sql, params = []) {
+  if (isPostgresProvider()) {
+    return pgPool
+      .query(toPostgresSql(sql), params)
+      .then((result) => result.rows || []);
+  }
+
   if (isMysqlProvider()) {
     return mysqlPool.execute(sql, params).then(([rows]) => rows || []);
   }
@@ -803,8 +788,9 @@ async function listBookings(filters = {}) {
 }
 
 async function getSiteContent() {
+  const siteContentKeyColumn = isMysqlProvider() ? "`key`" : "key";
   const row = await dbGet(
-    "SELECT content_json AS contentJson FROM site_content WHERE key = ? LIMIT 1",
+    `SELECT content_json AS contentJson FROM site_content WHERE ${siteContentKeyColumn} = ? LIMIT 1`,
     ["homepage"],
   );
 
@@ -835,6 +821,8 @@ function sanitizeSiteContentInput(raw = {}) {
 
 async function saveSiteContent(content) {
   const payload = sanitizeSiteContentInput(content);
+  const nowIso = new Date().toISOString();
+
   if (isMysqlProvider()) {
     await dbRun(
       `INSERT INTO site_content (\`key\`, content_json, updated_at)
@@ -842,18 +830,19 @@ async function saveSiteContent(content) {
        ON DUPLICATE KEY UPDATE
          content_json = VALUES(content_json),
          updated_at = VALUES(updated_at)`,
-      ["homepage", JSON.stringify(payload), new Date().toISOString()],
+      ["homepage", JSON.stringify(payload), nowIso],
     );
-  } else {
-    await dbRun(
-      `INSERT INTO site_content (key, content_json, updated_at)
-       VALUES (?, ?, ?)
-       ON CONFLICT(key) DO UPDATE SET
-         content_json = excluded.content_json,
-         updated_at = excluded.updated_at`,
-      ["homepage", JSON.stringify(payload), new Date().toISOString()],
-    );
+    return payload;
   }
+
+  await dbRun(
+    `INSERT INTO site_content (key, content_json, updated_at)
+     VALUES (?, ?, ?)
+     ON CONFLICT(key) DO UPDATE SET
+       content_json = excluded.content_json,
+       updated_at = excluded.updated_at`,
+    ["homepage", JSON.stringify(payload), nowIso],
+  );
   return payload;
 }
 
@@ -897,10 +886,19 @@ async function insertUser(user) {
 }
 
 async function initSqliteDatabase() {
-  const sqliteDriver = getSqliteDriver();
+  if (!sqlite3) {
+    try {
+      sqlite3 = require("sqlite3").verbose();
+    } catch (err) {
+      throw new Error(
+        "SQLite driver is unavailable. Install sqlite3 or switch DB_PROVIDER to postgres/mysql.",
+      );
+    }
+  }
+
   await fs.mkdir(path.dirname(DB_FILE), { recursive: true });
   db = await new Promise((resolve, reject) => {
-    const instance = new sqliteDriver.Database(DB_FILE, (err) => {
+    const instance = new sqlite3.Database(DB_FILE, (err) => {
       if (err) {
         reject(err);
         return;
@@ -1020,105 +1018,194 @@ async function initSqliteDatabase() {
   await cleanupExpiredSessions();
 }
 
-async function ensureMysqlIndex(tableName, indexName, columnsSql) {
-  try {
-    await dbRun(`CREATE INDEX ${indexName} ON ${tableName} (${columnsSql})`);
-  } catch (err) {
-    if (Number(err?.errno) !== 1061) {
-      throw err;
-    }
+async function initPostgresDatabase() {
+  const pgConfig = {};
+  if (process.env.DATABASE_URL) {
+    pgConfig.connectionString = process.env.DATABASE_URL;
   }
+  pgPool = new Pool(pgConfig);
+
+  await dbRun(`
+    CREATE TABLE IF NOT EXISTS users (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      email TEXT NOT NULL UNIQUE,
+      membership_type TEXT NOT NULL DEFAULT '',
+      is_admin BOOLEAN NOT NULL DEFAULT FALSE,
+      password_hash TEXT NOT NULL,
+      created_at TEXT NOT NULL
+    )
+  `);
+
+  await dbRun(`
+    CREATE TABLE IF NOT EXISTS sessions (
+      token TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      expires_at BIGINT NOT NULL,
+      created_at BIGINT NOT NULL
+    )
+  `);
+  await dbRun(
+    "CREATE INDEX IF NOT EXISTS idx_sessions_expires_at ON sessions (expires_at)",
+  );
+  await dbRun(
+    "CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON sessions (user_id)",
+  );
+
+  await dbRun(`
+    CREATE TABLE IF NOT EXISTS bookings (
+      id TEXT PRIMARY KEY,
+      user_id TEXT REFERENCES users(id) ON DELETE SET NULL,
+      customer_name TEXT NOT NULL,
+      customer_email TEXT NOT NULL,
+      customer_phone TEXT NOT NULL DEFAULT '',
+      facility TEXT NOT NULL,
+      booking_date TEXT NOT NULL,
+      booking_time TEXT NOT NULL,
+      duration TEXT NOT NULL DEFAULT '',
+      court TEXT NOT NULL DEFAULT '',
+      membership_type TEXT NOT NULL DEFAULT '',
+      applied_membership TEXT NOT NULL DEFAULT 'none',
+      amount INTEGER NOT NULL,
+      currency TEXT NOT NULL DEFAULT 'usd',
+      payment_status TEXT NOT NULL DEFAULT 'pending',
+      checkout_session_id TEXT UNIQUE,
+      payment_intent_id TEXT UNIQUE,
+      source TEXT NOT NULL DEFAULT 'checkout',
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    )
+  `);
+  await dbRun(
+    "CREATE INDEX IF NOT EXISTS idx_bookings_created_at ON bookings (created_at)",
+  );
+  await dbRun(
+    "CREATE INDEX IF NOT EXISTS idx_bookings_user_id ON bookings (user_id)",
+  );
+  await dbRun(
+    "CREATE INDEX IF NOT EXISTS idx_bookings_booking_date ON bookings (booking_date)",
+  );
+
+  await dbRun(`
+    CREATE TABLE IF NOT EXISTS site_content (
+      key TEXT PRIMARY KEY,
+      content_json TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    )
+  `);
+
+  const existingSiteContent = await dbGet(
+    "SELECT key FROM site_content WHERE key = ? LIMIT 1",
+    ["homepage"],
+  );
+  if (!existingSiteContent) {
+    await dbRun(
+      "INSERT INTO site_content (key, content_json, updated_at) VALUES (?, ?, ?)",
+      [
+        "homepage",
+        JSON.stringify(SITE_CONTENT_DEFAULTS),
+        new Date().toISOString(),
+      ],
+    );
+  }
+
+  await cleanupExpiredSessions();
 }
 
 async function initMysqlDatabase() {
-  const mysqlDriver = getMysqlDriver();
+  if (!mysql) {
+    try {
+      mysql = require("mysql2/promise");
+    } catch (err) {
+      throw new Error(
+        "MySQL driver is unavailable. Install mysql2 or switch DB_PROVIDER to sqlite/postgres.",
+      );
+    }
+  }
+
   if (process.env.DATABASE_URL) {
-    mysqlPool = mysqlDriver.createPool(process.env.DATABASE_URL);
+    mysqlPool = mysql.createPool(process.env.DATABASE_URL);
   } else {
-    mysqlPool = mysqlDriver.createPool({
+    mysqlPool = mysql.createPool({
       host: process.env.MYSQL_HOST || "127.0.0.1",
       port: Number(process.env.MYSQL_PORT || 3306),
       user: process.env.MYSQL_USER || "root",
       password: process.env.MYSQL_PASSWORD || "",
       database: process.env.MYSQL_DATABASE || "smashforce",
       waitForConnections: true,
-      connectionLimit: Number(process.env.MYSQL_POOL_SIZE || 10),
+      connectionLimit: Number(process.env.MYSQL_CONNECTION_LIMIT || 10),
       queueLimit: 0,
     });
   }
 
+  await mysqlPool.query("SELECT 1");
+
   await dbRun(`
     CREATE TABLE IF NOT EXISTS users (
-      id VARCHAR(64) PRIMARY KEY,
+      id VARCHAR(191) PRIMARY KEY,
       name VARCHAR(255) NOT NULL,
       email VARCHAR(255) NOT NULL UNIQUE,
       membership_type VARCHAR(32) NOT NULL DEFAULT '',
-      is_admin BOOLEAN NOT NULL DEFAULT FALSE,
-      password_hash VARCHAR(255) NOT NULL,
+      is_admin TINYINT(1) NOT NULL DEFAULT 0,
+      password_hash TEXT NOT NULL,
       created_at VARCHAR(64) NOT NULL
     )
   `);
 
   await dbRun(`
     CREATE TABLE IF NOT EXISTS sessions (
-      token VARCHAR(128) PRIMARY KEY,
-      user_id VARCHAR(64) NOT NULL,
+      token VARCHAR(191) PRIMARY KEY,
+      user_id VARCHAR(191) NOT NULL,
       expires_at BIGINT NOT NULL,
       created_at BIGINT NOT NULL,
-      CONSTRAINT fk_sessions_user
-        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      INDEX idx_sessions_expires_at (expires_at),
+      INDEX idx_sessions_user_id (user_id),
+      CONSTRAINT fk_sessions_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
     )
   `);
-  await ensureMysqlIndex("sessions", "idx_sessions_expires_at", "expires_at");
-  await ensureMysqlIndex("sessions", "idx_sessions_user_id", "user_id");
 
   await dbRun(`
     CREATE TABLE IF NOT EXISTS bookings (
-      id VARCHAR(64) PRIMARY KEY,
-      user_id VARCHAR(64) NULL,
+      id VARCHAR(191) PRIMARY KEY,
+      user_id VARCHAR(191) NULL,
       customer_name VARCHAR(255) NOT NULL,
       customer_email VARCHAR(255) NOT NULL,
       customer_phone VARCHAR(64) NOT NULL DEFAULT '',
       facility VARCHAR(64) NOT NULL,
-      booking_date VARCHAR(64) NOT NULL,
-      booking_time VARCHAR(64) NOT NULL,
+      booking_date VARCHAR(32) NOT NULL,
+      booking_time VARCHAR(32) NOT NULL,
       duration VARCHAR(64) NOT NULL DEFAULT '',
       court VARCHAR(64) NOT NULL DEFAULT '',
       membership_type VARCHAR(32) NOT NULL DEFAULT '',
       applied_membership VARCHAR(32) NOT NULL DEFAULT 'none',
       amount INT NOT NULL,
-      currency VARCHAR(10) NOT NULL DEFAULT 'usd',
+      currency VARCHAR(16) NOT NULL DEFAULT 'usd',
       payment_status VARCHAR(32) NOT NULL DEFAULT 'pending',
-      checkout_session_id VARCHAR(255) UNIQUE,
-      payment_intent_id VARCHAR(255) UNIQUE,
+      checkout_session_id VARCHAR(191) UNIQUE NULL,
+      payment_intent_id VARCHAR(191) UNIQUE NULL,
       source VARCHAR(32) NOT NULL DEFAULT 'checkout',
       created_at VARCHAR(64) NOT NULL,
       updated_at VARCHAR(64) NOT NULL,
-      CONSTRAINT fk_bookings_user
-        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
+      INDEX idx_bookings_created_at (created_at),
+      INDEX idx_bookings_user_id (user_id),
+      INDEX idx_bookings_booking_date (booking_date),
+      CONSTRAINT fk_bookings_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
     )
   `);
-  await ensureMysqlIndex("bookings", "idx_bookings_created_at", "created_at");
-  await ensureMysqlIndex("bookings", "idx_bookings_user_id", "user_id");
-  await ensureMysqlIndex(
-    "bookings",
-    "idx_bookings_booking_date",
-    "booking_date",
-  );
 
   await dbRun(`
     CREATE TABLE IF NOT EXISTS site_content (
-      \`key\` VARCHAR(64) PRIMARY KEY,
+      \`key\` VARCHAR(191) PRIMARY KEY,
       content_json LONGTEXT NOT NULL,
       updated_at VARCHAR(64) NOT NULL
     )
   `);
 
   const existingSiteContent = await dbGet(
-    "SELECT `key` AS `key` FROM site_content WHERE `key` = ? LIMIT 1",
+    "SELECT `key` AS keyName FROM site_content WHERE `key` = ? LIMIT 1",
     ["homepage"],
   );
-  if (!existingSiteContent) {
+  if (!existingSiteContent?.keyName) {
     await dbRun(
       "INSERT INTO site_content (`key`, content_json, updated_at) VALUES (?, ?, ?)",
       [
@@ -1133,6 +1220,11 @@ async function initMysqlDatabase() {
 }
 
 async function initDatabase() {
+  if (isPostgresProvider()) {
+    await initPostgresDatabase();
+    return;
+  }
+
   if (isMysqlProvider()) {
     await initMysqlDatabase();
     return;
@@ -1140,7 +1232,7 @@ async function initDatabase() {
 
   if (DB_PROVIDER !== "sqlite") {
     throw new Error(
-      `Unsupported DB_PROVIDER '${DB_PROVIDER}'. Use 'sqlite' or 'mysql'.`,
+      `Unsupported DB_PROVIDER '${DB_PROVIDER}'. Use 'sqlite', 'postgres', or 'mysql'.`,
     );
   }
 
@@ -1165,7 +1257,20 @@ async function maybeMigrateLegacyUsers() {
       if (!user?.id || !user?.email || !user?.passwordHash || !user?.name) {
         continue;
       }
-      if (isMysqlProvider()) {
+      if (isPostgresProvider()) {
+        await dbRun(
+          "INSERT INTO users (id, name, email, membership_type, is_admin, password_hash, created_at) VALUES (?, ?, ?, ?, ?, ?, ?) ON CONFLICT DO NOTHING",
+          [
+            String(user.id),
+            String(user.name),
+            String(user.email).toLowerCase(),
+            String(user.membershipType || ""),
+            toDbBoolean(user.isAdmin),
+            String(user.passwordHash),
+            String(user.createdAt || new Date().toISOString()),
+          ],
+        );
+      } else if (isMysqlProvider()) {
         await dbRun(
           "INSERT IGNORE INTO users (id, name, email, membership_type, is_admin, password_hash, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
           [
@@ -2152,6 +2257,10 @@ async function startServer(port = Number(process.env.PORT) || 3000) {
   try {
     await initDatabase();
     await maybeMigrateLegacyUsers();
+
+    console.log(
+      `Startup config: DB_PROVIDER=${DB_PROVIDER}, NODE_ENV=${process.env.NODE_ENV || "development"}, PORT=${port}`,
+    );
 
     return await new Promise((resolve, reject) => {
       const server = app.listen(port, () => {

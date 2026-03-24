@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Smash Force Academy – Book Your Court</title>
+    <title>Smashforce Badminton Centre – Book Your Court</title>
     <link
       href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,300;0,600;0,700;0,800;0,900;1,800;1,900&family=Outfit:wght@300;400;500;600;700&display=swap"
       rel="stylesheet"
@@ -17,9 +17,13 @@
 ════════════════════════════════════════ -->
     <nav>
       <a class="logo" href="#">
-        <img src="Smash%20Force%20Badminton%20Centre%20logo%203.png" alt="Smash Force Badminton Centre" class="logo-img">
+        <img
+          src="Smash%20Force%20Badminton%20Centre%20logo%203.png"
+          alt="Smashforce Badminton Centre"
+          class="logo-img"
+        />
         <div class="logo-text">
-          SMASH FORCE<small>Academy</small>
+          SMASHFORCE<small>Badminton Centre</small>
           <div class="logo-tagline" id="logoTaglineText">
             Experience the Power of the Smash.
           </div>
@@ -68,7 +72,9 @@
       <button class="mob-auth-btn" id="mobAuthOpenBtn" type="button">
         Login / Signup
       </button>
-      <a href="admin.html" class="hidden-auth-link" id="mobAdminLink">Admin Panel</a>
+      <a href="admin.html" class="hidden-auth-link" id="mobAdminLink"
+        >Admin Panel</a
+      >
       <button
         class="mob-auth-btn hidden-auth-link"
         id="mobAuthLogoutBtn"
@@ -87,13 +93,22 @@
           Sign in to manage membership access and member pricing.
         </p>
         <div class="auth-tabs">
-          <button class="auth-tab active" id="loginTabBtn" type="button">Login</button>
-          <button class="auth-tab" id="signupTabBtn" type="button">Sign Up</button>
+          <button class="auth-tab active" id="loginTabBtn" type="button">
+            Login
+          </button>
+          <button class="auth-tab" id="signupTabBtn" type="button">
+            Sign Up
+          </button>
         </div>
 
         <form id="loginForm" class="auth-form">
           <label for="loginEmail">Email</label>
-          <input id="loginEmail" type="email" required placeholder="you@email.com" />
+          <input
+            id="loginEmail"
+            type="email"
+            required
+            placeholder="you@email.com"
+          />
           <label for="loginPassword">Password</label>
           <input
             id="loginPassword"
@@ -107,9 +122,19 @@
 
         <form id="signupForm" class="auth-form hidden-auth-link">
           <label for="signupName">Full Name</label>
-          <input id="signupName" type="text" required placeholder="Jane Smith" />
+          <input
+            id="signupName"
+            type="text"
+            required
+            placeholder="Jane Smith"
+          />
           <label for="signupEmail">Email</label>
-          <input id="signupEmail" type="email" required placeholder="you@email.com" />
+          <input
+            id="signupEmail"
+            type="email"
+            required
+            placeholder="you@email.com"
+          />
           <label for="signupMembershipType">Membership Type</label>
           <select id="signupMembershipType">
             <option value="">No membership yet</option>
@@ -124,7 +149,9 @@
             minlength="8"
             placeholder="Create a password"
           />
-          <button class="btn-lime auth-submit" type="submit">Create Account</button>
+          <button class="btn-lime auth-submit" type="submit">
+            Create Account
+          </button>
         </form>
 
         <div class="auth-error" id="authError"></div>
@@ -147,11 +174,11 @@
             <span id="heroAnnouncementText">Now accepting bookings</span>
           </div>
           <h1 class="hero-h1">
-            SMASH<br /><span class="h1-lime">FORCE</span><br />ACADEMY
+            SMASHFORCE<br /><span class="h1-lime">BADMINTON</span><br />CENTRE
           </h1>
           <p class="hero-p" id="heroDescriptionText">
             9 professional badminton courts, 5 multi-game tables, and elite
-            facilities — open mornings and evenings for players of every level.
+            facilities, open mornings and evenings for players of every level.
           </p>
           <div class="hero-btns">
             <a href="booking.html" class="btn-lime" target="_blank"
@@ -194,7 +221,7 @@
           <div class="eyebrow">Facilities</div>
           <h2 class="sec-h">BADMINTON COURTS</h2>
           <p class="sec-p">
-            All courts maintained to professional standards — consistent pricing
+            All courts maintained to professional standards, consistent pricing
             across all time slots, every day.
           </p>
         </div>
@@ -210,6 +237,13 @@
               Full-width courts with professional-grade flooring and tournament
               nets. Ideal for doubles, team training, and competitive play.
             </p>
+            <div class="c-image-wrap">
+              <img
+                src="standard-court.png"
+                alt="Standard badminton courts"
+                class="c-image"
+              />
+            </div>
             <div class="c-price-row">
               <div class="c-price-big" id="standardCourtPrice">$25</div>
               <div class="c-price-sub">per hour<br />all day</div>
@@ -243,6 +277,13 @@
               Compact courts — great value for focused one-on-one training
               sessions.
             </p>
+            <div class="c-image-wrap">
+              <img
+                src="singlecourt.png"
+                alt="Single badminton courts"
+                class="c-image"
+              />
+            </div>
             <div class="c-price-row">
               <div class="c-price-big" id="singleCourtPrice">$15</div>
               <div class="c-price-sub">per hour<br />all day</div>
@@ -279,6 +320,34 @@
     </section>
 
     <!-- ═══════════════════════════════════════
+     BOOKING
+════════════════════════════════════════ -->
+    <section id="booking">
+      <div class="container">
+        <div class="rv" style="text-align: center">
+          <div
+            class="eyebrow"
+            style="justify-content: center; margin-bottom: 14px"
+          >
+            Reserve Online
+          </div>
+          <h2 class="sec-h">BOOK YOUR SESSION</h2>
+          <p class="sec-p" style="margin: 16px auto 32px; display: block">
+            Ready to secure your court? Book online 24/7 with instant
+            confirmation.
+          </p>
+          <a
+            href="booking.html"
+            class="btn-lime"
+            id="bookingCtaButton"
+            target="_blank"
+            >🏸 Book Your Court Now</a
+          >
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════
      MULTI-GAME TABLES
 ════════════════════════════════════════ -->
     <section id="games">
@@ -294,6 +363,22 @@
             <div class="c-feats" style="margin-bottom: 32px">
               <div class="c-feat">
                 <span class="c-dot"></span>5 private dedicated tables
+              </div>
+              <div class="c-feat">
+                <span class="c-dot"></span>Table 1: Ice Hockey
+              </div>
+              <div class="c-feat">
+                <span class="c-dot"></span>Table 2: Table Tennis
+              </div>
+              <div class="c-feat">
+                <span class="c-dot"></span>Table 3: Pool / Ice Hockey
+                (convertible to Table Tennis based on demand)
+              </div>
+              <div class="c-feat">
+                <span class="c-dot"></span>Table 4: Pool / Ice Hockey
+              </div>
+              <div class="c-feat">
+                <span class="c-dot"></span>Table 5: Pool / Ice Hockey
               </div>
               <div class="c-feat">
                 <span class="c-dot"></span>Pool / Billiards
@@ -393,7 +478,9 @@
                 <span class="mf-ch">✓</span><span>Cancel anytime</span>
               </li>
             </ul>
-            <a href="booking.html" class="btn-m btn-m-out" target="_blank">Get Started</a>
+            <a href="#" class="btn-m btn-m-out" data-membership="court"
+              >Get Started</a
+            >
           </div>
 
           <!-- All Access Membership -->
@@ -444,29 +531,12 @@
                 <span class="mf-ch">✓</span><span>Cancel anytime</span>
               </li>
             </ul>
-            <a href="booking.html" class="btn-m btn-m-lime" target="_blank">Get All Access →</a>
+            <a href="#" class="btn-m btn-m-lime" data-membership="all-access"
+              >Get All Access -></a
+            >
           </div>
         </div>
       </div>
-    </section>
-
-    <!-- ═══════════════════════════════════════
-     BOOKING
-════════════════════════════════════════ -->
-    <section id="booking">
-      <div class="container">
-        <div class="rv" style="text-align: center;">
-          <div class="eyebrow" style="justify-content: center; margin-bottom: 14px;">Reserve Online</div>
-          <h2 class="sec-h">BOOK YOUR SESSION</h2>
-          <p class="sec-p" style="margin: 16px auto 32px; display: block;">
-            Ready to secure your court? Book online 24/7 with instant confirmation.
-          </p>
-          <a href="booking.html" class="btn-lime" id="bookingCtaButton" target="_blank"
-            >🏸 Book Your Court Now</a
-          >
-        </div>
-
-        
     </section>
 
     <!-- ═══════════════════════════════════════
@@ -522,7 +592,7 @@
                 <div>
                   <div class="cc-lb">Location</div>
                   <div class="cc-v" id="contactLocationText">
-                    Your Full Address · City
+                    4 Simpson St, Moorabbin VIC 3189
                   </div>
                 </div>
               </div>
@@ -530,7 +600,9 @@
                 <div class="cc-ico">📞</div>
                 <div>
                   <div class="cc-lb">Phone</div>
-                  <div class="cc-v" id="contactPhoneText">+1 (000) 000-0000</div>
+                  <div class="cc-v" id="contactPhoneText">
+                    +61 370 447 733
+                  </div>
                 </div>
               </div>
               <div class="cc rv">
@@ -615,8 +687,14 @@
       <div class="foot-in">
         <div class="foot-brand">
           <a class="logo" href="#">
-            <img src="Smash%20Force%20Badminton%20Centre%20logo%203.png" alt="Smash Force Badminton Centre" class="logo-img">
-            <div class="logo-text">SMASH FORCE<small>Academy</small></div>
+            <img
+              src="Smash%20Force%20Badminton%20Centre%20logo%203.png"
+              alt="Smashforce Badminton Centre"
+              class="logo-img"
+            />
+            <div class="logo-text">
+              SMASHFORCE<small>Badminton Centre</small>
+            </div>
           </a>
           <p>
             9 courts, 5 game tables, and a community built for players who love
@@ -643,9 +721,88 @@
             <li><a href="#">Book online 24/7</a></li>
           </ul>
         </div>
+        <div class="foot-links foot-social">
+          <h4>Follow Us</h4>
+          <div class="social-row" aria-label="Smashforce social media links">
+            <a
+              href="https://www.instagram.com/"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="social-pill"
+              aria-label="Instagram"
+            >
+              <svg
+                class="social-icon"
+                viewBox="0 0 24 24"
+                aria-hidden="true"
+                focusable="false"
+              >
+                <rect x="3" y="3" width="18" height="18" rx="5"></rect>
+                <circle cx="12" cy="12" r="4"></circle>
+                <circle cx="17.5" cy="6.5" r="1"></circle>
+              </svg>
+            </a>
+            <a
+              href="https://www.facebook.com/"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="social-pill"
+              aria-label="Facebook"
+            >
+              <svg
+                class="social-icon"
+                viewBox="0 0 24 24"
+                aria-hidden="true"
+                focusable="false"
+              >
+                <path
+                  d="M14 8h3V4h-3a5 5 0 0 0-5 5v3H6v4h3v4h4v-4h3l1-4h-4V9a1 1 0 0 1 1-1z"
+                ></path>
+              </svg>
+            </a>
+            <a
+              href="https://www.tiktok.com/"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="social-pill"
+              aria-label="TikTok"
+            >
+              <svg
+                class="social-icon"
+                viewBox="0 0 24 24"
+                aria-hidden="true"
+                focusable="false"
+              >
+                <path d="M14 5v8.5a3.5 3.5 0 1 1-3.5-3.5"></path>
+                <path
+                  d="M14 5c1 1.9 2.6 3 4.5 3V11c-1.7 0-3.3-.6-4.5-1.7"
+                ></path>
+              </svg>
+            </a>
+            <a
+              href="https://www.youtube.com/"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="social-pill"
+              aria-label="YouTube"
+            >
+              <svg
+                class="social-icon"
+                viewBox="0 0 24 24"
+                aria-hidden="true"
+                focusable="false"
+              >
+                <path
+                  d="M20 8.2a2.1 2.1 0 0 0-1.5-1.5C17 6.3 12 6.3 12 6.3s-5 0-6.5.4A2.1 2.1 0 0 0 4 8.2 22 22 0 0 0 3.6 12c0 1.3.1 2.6.4 3.8A2.1 2.1 0 0 0 5.5 17.3c1.5.4 6.5.4 6.5.4s5 0 6.5-.4a2.1 2.1 0 0 0 1.5-1.5c.3-1.2.4-2.5.4-3.8s-.1-2.6-.4-3.8z"
+                ></path>
+                <path d="m10 15 5-3-5-3z"></path>
+              </svg>
+            </a>
+          </div>
+        </div>
       </div>
       <div class="foot-bot">
-        <span>© 2026 Smash Force Academy. All rights reserved.</span>
+        <span>© 2026 Smashforce Badminton Centre. All rights reserved.</span>
         <span>Built for champions at every level 🏸</span>
       </div>
     </footer>
@@ -653,12 +810,15 @@
     <div class="toast" id="toast"></div>
 
     <!-- Floating Book Button -->
-    <a href="booking.html" class="floating-book" target="_blank" title="Book a Court"
+    <a
+      href="booking.html"
+      class="floating-book"
+      target="_blank"
+      title="Book a Court"
       ><span id="floatingButtonText">🏸Book Now!</span></a
     >
 
     <!-- External JS — always load last for best performance -->
-    <script src="booking.js"></script>
     <script src="main.js"></script>
   </body>
 </html>

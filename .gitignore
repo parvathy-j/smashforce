@@ -1,0 +1,36 @@
+# Dependencies
+node_modules/
+
+# Environment secrets
+.env
+.env.local
+.env.*.local
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Build / deploy artifacts
+smashforce-deploy.zip
+.deploy_stage/
+
+# Images (handled outside git)
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.webp
+*.svg
+
+# OS artifacts
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/

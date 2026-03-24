@@ -225,12 +225,60 @@ nav {
   margin-top: 8px;
   color: var(--dim);
   font-size: 0.76rem;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.mem-lock:hover {
+  color: var(--white);
 }
 
 .mem-toggle input[disabled],
 .mem-toggle select[disabled] {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.promo-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.promo-row input {
+  flex: 1;
+}
+
+.promo-feedback {
+  min-height: 20px;
+  margin-top: 8px;
+  font-size: 0.8rem;
+  color: var(--dim);
+}
+
+.promo-feedback.success {
+  color: var(--green);
+}
+
+.promo-feedback.error {
+  color: var(--red);
+}
+
+.fa-breakdown {
+  margin-top: 12px;
+  border-top: 1px solid var(--border);
+  padding-top: 10px;
+  display: grid;
+  gap: 6px;
+  font-size: 0.82rem;
+  color: var(--dim);
+}
+
+.fa-breakdown > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
 }
 
 /* ── PROGRESS BAR ── */
@@ -535,6 +583,12 @@ nav {
   font-size: 0.82rem;
   font-weight: 600;
 }
+.tbl-card .tn-sub {
+  margin-top: 4px;
+  color: var(--dim);
+  font-size: 0.72rem;
+  line-height: 1.35;
+}
 
 /* ── CALENDAR ── */
 .cal-layout {
@@ -725,6 +779,11 @@ nav {
   cursor: not-allowed;
   text-decoration: line-through;
 }
+.slot.past {
+  opacity: 0.38;
+  cursor: not-allowed;
+  text-decoration: line-through;
+}
 .slot.taken::after {
   content: "✕";
   position: absolute;
@@ -732,6 +791,14 @@ nav {
   right: 4px;
   font-size: 0.55rem;
   color: var(--red);
+}
+.slot.past::after {
+  content: "⏱";
+  position: absolute;
+  top: 2px;
+  right: 4px;
+  font-size: 0.55rem;
+  color: var(--dim);
 }
 .no-date-msg {
   padding: 48px 24px;
@@ -877,6 +944,12 @@ nav {
   grid-template-columns: 1fr 1fr;
   gap: 16px;
 }
+.step3-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 28px;
+  align-items: start;
+}
 .fg {
   display: flex;
   flex-direction: column;
@@ -968,10 +1041,23 @@ textarea {
   background: rgba(var(--secondary-rgb), 0.06);
   color: var(--secondary);
 }
+.pm.unavailable {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.pm.unavailable:hover {
+  border-color: var(--border);
+}
 .pm .pm-icon {
   font-size: 1.3rem;
   display: block;
   margin-bottom: 5px;
+}
+.pm .pm-icon svg {
+  width: 20px;
+  height: 20px;
+  display: block;
+  margin: 0 auto;
 }
 
 /* Stripe card element */
@@ -1004,6 +1090,15 @@ textarea {
   font-size: 0.72rem;
   color: var(--dim);
   margin-top: 14px;
+}
+.inperson-note {
+  font-size: 0.82rem;
+  color: var(--dim);
+  background: var(--navy-2);
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  padding: 12px;
+  line-height: 1.5;
 }
 .stripe-badge {
   display: inline-flex;
@@ -1117,6 +1212,13 @@ textarea {
   font-size: 2rem;
   margin: 0 auto 28px;
   animation: popIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+.success-icon::before {
+  content: "\2713";
+  color: var(--green);
+  font-size: 2.2rem;
+  font-weight: 800;
+  line-height: 1;
 }
 @keyframes popIn {
   from {
@@ -1303,8 +1405,18 @@ textarea {
   .form-grid {
     grid-template-columns: 1fr;
   }
+  .step3-layout {
+    grid-template-columns: 1fr;
+    gap: 18px;
+  }
   .fg.full {
     grid-column: unset;
+  }
+  @media (max-width: 1120px) {
+    .step3-layout {
+      grid-template-columns: 1fr;
+      gap: 20px;
+    }
   }
   .slots-grid {
     grid-template-columns: repeat(3, 1fr);

@@ -1,15 +1,16 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Book a Court – Smash Force Academy</title>
+    <title>Book a Court - Smashforce Badminton Centre</title>
     <link
       href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,700;0,800;0,900;1,700;1,900&family=Outfit:wght@300;400;500;600;700&display=swap"
       rel="stylesheet"
     />
-    <!-- Stripe.js — load before your own scripts -->
+    <!-- Stripe.js  load before your own scripts -->
     <script src="https://js.stripe.com/v3/"></script>
+    <script src="/client-config.js"></script>
     <link rel="stylesheet" href="index.css" />
     <link rel="stylesheet" href="booking.css" />
   </head>
@@ -19,11 +20,11 @@
       <a class="nav-logo" href="smash-force-academy.html">
         <img
           src="Smash%20Force%20Badminton%20Centre%20logo%203.png"
-          alt="Smash Force Badminton Centre"
+          alt="Smashforce Badminton Centre"
           class="logo-img"
         />
         <div class="logo-text">
-          SMASH FORCE<small>Academy</small>
+          SMASHFORCE<small>Badminton Centre</small>
           <div class="logo-tagline">Experience the Power of the Smash.</div>
         </div>
       </a>
@@ -39,13 +40,13 @@
         >
           Logout
         </button>
-        <a class="nav-back" href="smash-force-academy.html">← Back to Site</a>
+        <a class="nav-back" href="smash-force-academy.html"><- Back to Site</a>
       </div>
     </nav>
 
     <div class="auth-modal hidden" id="authModal" aria-hidden="true">
       <div class="auth-modal-card" role="dialog" aria-modal="true">
-        <button class="auth-close" id="authCloseBtn" type="button">×</button>
+        <button class="auth-close" id="authCloseBtn" type="button"></button>
         <h2>Member Access</h2>
         <p class="auth-sub">
           Sign in to maintain membership status and unlock member pricing.
@@ -147,7 +148,7 @@
     </div>
 
     <div class="page">
-      <!-- ════════════════════════════ STEP 1: FACILITY ════════════════════════════ -->
+      <!--  STEP 1: FACILITY  -->
       <div class="panel active" id="step1">
         <span class="eyebrow">Step 1 of 4</span>
         <h1 class="panel-title">Choose Your Facility</h1>
@@ -162,12 +163,12 @@
             id="fac-standard"
             onclick="selectFacility('standard', this)"
           >
-            <div class="fac-check">✓</div>
-            <div class="fac-icon">🏟️</div>
-            <div class="fac-courts">Courts 1–6</div>
+            <div class="fac-check"></div>
+            <div class="fac-icon"></div>
+            <div class="fac-courts">Courts 1-6</div>
             <div class="fac-name">Standard Courts</div>
             <div class="fac-desc">
-              Full-size courts — ideal for doubles, team training, and
+              Full-size courts - ideal for doubles, team training, and
               competitive play.
             </div>
             <div class="fac-price">$25 <span>/ hour</span></div>
@@ -184,12 +185,12 @@
             id="fac-single"
             onclick="selectFacility('single', this)"
           >
-            <div class="fac-check">✓</div>
-            <div class="fac-icon">🎯</div>
-            <div class="fac-courts">Courts 7–9</div>
+            <div class="fac-check"></div>
+            <div class="fac-icon"></div>
+            <div class="fac-courts">Courts 7-9</div>
             <div class="fac-name">Single Courts</div>
             <div class="fac-desc">
-              Compact courts — great value for focused singles training
+              Compact courts - great value for focused singles training
               sessions.
             </div>
             <div class="fac-price">$15 <span>/ hour</span></div>
@@ -206,12 +207,12 @@
             id="fac-table"
             onclick="selectFacility('table', this)"
           >
-            <div class="fac-check">✓</div>
-            <div class="fac-icon">🎱</div>
-            <div class="fac-courts">Tables 1–5</div>
+            <div class="fac-check"></div>
+            <div class="fac-icon"></div>
+            <div class="fac-courts">Tables 1-5</div>
             <div class="fac-name">Multi-Game Tables</div>
             <div class="fac-desc">
-              Pool, Ice Hockey, or Table Tennis — pick your game when you
+              Pool, Ice Hockey, or Table Tennis - pick your game when you
               arrive.
             </div>
             <div class="fac-price">$15 <span>/ hour</span></div>
@@ -219,25 +220,32 @@
             <div class="court-picker" id="cp-table" style="display: none">
               <div class="court-picker-label">Select a Table</div>
               <div class="table-nums" id="cn-table">
-                <div class="tbl-card" onclick="selectTable(1, this)">
-                  <div class="ti">🎱</div>
+                <div class="tbl-card" onclick="selectTable(1, this, event)">
+                  <div class="ti"></div>
                   <div class="tn">Table 1</div>
+                  <div class="tn-sub">Ice Hockey</div>
                 </div>
-                <div class="tbl-card" onclick="selectTable(2, this)">
-                  <div class="ti">🏒</div>
+                <div class="tbl-card" onclick="selectTable(2, this, event)">
+                  <div class="ti"></div>
                   <div class="tn">Table 2</div>
+                  <div class="tn-sub">Table Tennis</div>
                 </div>
-                <div class="tbl-card" onclick="selectTable(3, this)">
-                  <div class="ti">🏓</div>
+                <div class="tbl-card" onclick="selectTable(3, this, event)">
+                  <div class="ti"></div>
                   <div class="tn">Table 3</div>
+                  <div class="tn-sub">
+                    Pool / Ice Hockey (convertible to Table Tennis)
+                  </div>
                 </div>
-                <div class="tbl-card" onclick="selectTable(4, this)">
-                  <div class="ti">🎱</div>
+                <div class="tbl-card" onclick="selectTable(4, this, event)">
+                  <div class="ti"></div>
                   <div class="tn">Table 4</div>
+                  <div class="tn-sub">Pool / Ice Hockey</div>
                 </div>
-                <div class="tbl-card" onclick="selectTable(5, this)">
-                  <div class="ti">🏒</div>
+                <div class="tbl-card" onclick="selectTable(5, this, event)">
+                  <div class="ti"></div>
                   <div class="tn">Table 5</div>
+                  <div class="tn-sub">Pool / Ice Hockey</div>
                 </div>
               </div>
             </div>
@@ -245,18 +253,23 @@
         </div>
 
         <div class="nav-btns">
+          <div
+            id="booking-form-error"
+            class="hidden"
+            style="color: #ff4d6d; font-size: 0.92rem; font-weight: 600"
+          ></div>
           <span></span>
           <button
             class="btn-primary"
             style="width: auto; padding: 14px 44px"
             onclick="step1Next()"
           >
-            Continue to Date &amp; Time →
+            Continue to Date &amp; Time ->
           </button>
         </div>
       </div>
 
-      <!-- ════════════════════════════ STEP 2: DATE & TIME ════════════════════════════ -->
+      <!--  STEP 2: DATE & TIME  -->
       <div class="panel" id="step2">
         <span class="eyebrow">Step 2 of 4</span>
         <h1 class="panel-title">Pick Date &amp; Time</h1>
@@ -347,7 +360,7 @@
                 </div>
                 <div id="timeContent">
                   <div class="no-date-msg">
-                    <div class="nd-icon">📅</div>
+                    <div class="nd-icon"></div>
                     <p>
                       Pick a date on the calendar to see available time slots
                     </p>
@@ -362,27 +375,27 @@
             <h3>Your Booking</h3>
             <div class="sum-row">
               <span class="lbl">Facility</span
-              ><span class="val" id="sum-fac">–</span>
+              ><span class="val" id="sum-fac">-</span>
             </div>
             <div class="sum-row">
               <span class="lbl">Court / Table</span
-              ><span class="val" id="sum-court">–</span>
+              ><span class="val" id="sum-court">-</span>
             </div>
             <div class="sum-row">
               <span class="lbl">Date</span
-              ><span class="val" id="sum-date">–</span>
+              ><span class="val" id="sum-date">-</span>
             </div>
             <div class="sum-row">
               <span class="lbl">Time</span
-              ><span class="val" id="sum-time">–</span>
+              ><span class="val" id="sum-time">-</span>
             </div>
             <div class="sum-row">
               <span class="lbl">Duration</span
-              ><span class="val" id="sum-dur">–</span>
+              ><span class="val" id="sum-dur">-</span>
             </div>
             <div class="sum-row">
               <span class="lbl">Rate</span
-              ><span class="val" id="sum-rate">–</span>
+              ><span class="val" id="sum-rate">-</span>
             </div>
             <div class="sum-total">
               <span class="lbl">Total</span>
@@ -398,9 +411,22 @@
                 I have a membership
               </label>
               <div class="mem-saving hidden" id="mem-saving">
-                ✓ Member discount applied!
+                Member discount applied!
               </div>
-              <div class="mem-lock" id="mem-lock-msg">
+              <div
+                class="mem-lock"
+                id="mem-lock-msg"
+                role="button"
+                tabindex="0"
+                onclick="openAuthModal('login')"
+                onkeydown="
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    openAuthModal('login');
+                  }
+                "
+                title="Click to log in"
+              >
                 Login required to apply membership pricing.
               </div>
             </div>
@@ -408,18 +434,18 @@
         </div>
 
         <div class="nav-btns">
-          <button class="btn-ghost2" onclick="goStep(1)">← Back</button>
+          <button class="btn-ghost2" onclick="goStep(1)"><- Back</button>
           <button
             class="btn-primary"
             style="width: auto; padding: 14px 44px"
             onclick="step2Next()"
           >
-            Continue to Your Details →
+            Continue to Your Details ->
           </button>
         </div>
       </div>
 
-      <!-- ════════════════════════════ STEP 3: DETAILS ════════════════════════════ -->
+      <!--  STEP 3: DETAILS  -->
       <div class="panel" id="step3">
         <span class="eyebrow">Step 3 of 4</span>
         <h1 class="panel-title">Your Details</h1>
@@ -428,14 +454,7 @@
           instantly.
         </p>
 
-        <div
-          style="
-            display: grid;
-            grid-template-columns: 1fr 320px;
-            gap: 24px;
-            align-items: start;
-          "
-        >
+        <div class="step3-layout">
           <div>
             <div class="confirm-card">
               <h3>Contact Information</h3>
@@ -479,12 +498,31 @@
                 <div class="fg full">
                   <label class="fl">Membership Type (optional)</label>
                   <select id="f-membership" onchange="updateMemberSelect()">
-                    <option value="">No membership — pay full price</option>
+                    <option value="">No membership - pay full price</option>
                     <option value="court">Court Membership ($49/mo)</option>
                     <option value="all-access">
                       All Access Membership ($79/mo)
                     </option>
                   </select>
+                </div>
+                <div class="fg full">
+                  <label class="fl">Promo Code (optional)</label>
+                  <div class="promo-row">
+                    <input
+                      type="text"
+                      id="f-promo"
+                      placeholder="e.g. WELCOME10"
+                      oninput="handlePromoInputChange()"
+                    />
+                    <button
+                      type="button"
+                      class="btn-ghost2"
+                      onclick="applyPromoCode()"
+                    >
+                      Apply Code
+                    </button>
+                  </div>
+                  <div class="promo-feedback" id="promo-feedback"></div>
                 </div>
                 <div class="fg full">
                   <label class="fl">Special Requests (optional)</label
@@ -502,44 +540,52 @@
             <h3>Booking Summary</h3>
             <div class="sum-row">
               <span class="lbl">Facility</span
-              ><span class="val" id="s3-fac">–</span>
+              ><span class="val" id="s3-fac">-</span>
             </div>
             <div class="sum-row">
               <span class="lbl">Court</span
-              ><span class="val" id="s3-court">–</span>
+              ><span class="val" id="s3-court">-</span>
             </div>
             <div class="sum-row">
               <span class="lbl">Date</span
-              ><span class="val" id="s3-date">–</span>
+              ><span class="val" id="s3-date">-</span>
             </div>
             <div class="sum-row">
               <span class="lbl">Time</span
-              ><span class="val" id="s3-time">–</span>
+              ><span class="val" id="s3-time">-</span>
             </div>
             <div class="sum-row">
               <span class="lbl">Duration</span
-              ><span class="val" id="s3-dur">–</span>
+              ><span class="val" id="s3-dur">-</span>
+            </div>
+            <div class="sum-row">
+              <span class="lbl">Promo</span
+              ><span class="val" id="s3-promo">-</span>
+            </div>
+            <div class="sum-row">
+              <span class="lbl">Discount</span
+              ><span class="val" id="s3-discount">$0.00</span>
             </div>
             <div class="sum-total">
               <span class="lbl">Total Due</span>
-              <span class="val" id="s3-total">–</span>
+              <span class="val" id="s3-total">$0.00</span>
             </div>
           </div>
         </div>
 
         <div class="nav-btns">
-          <button class="btn-ghost2" onclick="goStep(2)">← Back</button>
+          <button class="btn-ghost2" onclick="goStep(2)"><- Back</button>
           <button
             class="btn-primary"
             style="width: auto; padding: 14px 44px"
             onclick="step3Next()"
           >
-            Continue to Payment →
+            Continue to Payment ->
           </button>
         </div>
       </div>
 
-      <!-- ════════════════════════════ STEP 4: PAYMENT ════════════════════════════ -->
+      <!--  STEP 4: PAYMENT  -->
       <div class="panel" id="step4">
         <span class="eyebrow">Step 4 of 4</span>
         <h1 class="panel-title">Secure Payment</h1>
@@ -555,35 +601,35 @@
               <h3>Booking Details</h3>
               <div class="confirm-row">
                 <span class="lbl">Name</span
-                ><span class="val" id="c-name">–</span>
+                ><span class="val" id="c-name"></span>
               </div>
               <div class="confirm-row">
                 <span class="lbl">Email</span
-                ><span class="val" id="c-email">–</span>
+                ><span class="val" id="c-email"></span>
               </div>
               <div class="confirm-row">
                 <span class="lbl">Phone</span
-                ><span class="val" id="c-phone">–</span>
+                ><span class="val" id="c-phone"></span>
               </div>
               <div class="confirm-row">
                 <span class="lbl">Facility</span
-                ><span class="val" id="c-fac">–</span>
+                ><span class="val" id="c-fac"></span>
               </div>
               <div class="confirm-row">
                 <span class="lbl">Court / Table</span
-                ><span class="val" id="c-court">–</span>
+                ><span class="val" id="c-court"></span>
               </div>
               <div class="confirm-row">
                 <span class="lbl">Date</span
-                ><span class="val" id="c-date">–</span>
+                ><span class="val" id="c-date"></span>
               </div>
               <div class="confirm-row">
                 <span class="lbl">Time</span
-                ><span class="val" id="c-time">–</span>
+                ><span class="val" id="c-time"></span>
               </div>
               <div class="confirm-row">
                 <span class="lbl">Duration</span
-                ><span class="val" id="c-dur">–</span>
+                ><span class="val" id="c-dur"></span>
               </div>
               <div class="confirm-row">
                 <span class="lbl">Membership</span
@@ -595,19 +641,35 @@
             <div class="pay-section">
               <h3>Payment Method</h3>
               <p>
-                Your card details are processed securely by Stripe — we never
+                Your card details are processed securely by Stripe we never
                 store card numbers.
               </p>
 
               <div class="pay-methods">
                 <div class="pm sel" onclick="setPayMethod('card', this)">
-                  <span class="pm-icon">💳</span>Card
+                  <span class="pm-icon"></span>Card
                 </div>
                 <div class="pm" onclick="setPayMethod('apple', this)">
-                  <span class="pm-icon">🍎</span>Apple Pay
+                  <span class="pm-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" focusable="false">
+                      <path
+                        d="M16.37 12.49c.03 3.1 2.72 4.13 2.75 4.14-.02.07-.43 1.5-1.43 2.98-.86 1.27-1.76 2.54-3.17 2.57-1.38.03-1.82-.82-3.4-.82-1.58 0-2.07.79-3.37.85-1.36.05-2.4-1.36-3.27-2.62-1.78-2.57-3.14-7.26-1.31-10.44.91-1.57 2.53-2.57 4.29-2.6 1.34-.03 2.61.91 3.4.91.79 0 2.27-1.12 3.82-.95.65.03 2.49.26 3.67 2 .1.15-.77.45-1.98 1.98-.45.57-.99 1.57-1 2.99zm-2.5-7.11c.72-.87 1.2-2.07 1.07-3.27-1.04.04-2.29.69-3.04 1.56-.67.77-1.26 2-1.1 3.18 1.16.09 2.35-.59 3.07-1.47z"
+                        fill="currentColor"
+                      ></path>
+                    </svg>
+                  </span>
+                  Apple Pay
                 </div>
                 <div class="pm" onclick="setPayMethod('google', this)">
                   <span class="pm-icon">G</span>Google Pay
+                </div>
+                <div
+                  class="pm hidden"
+                  id="pm-inperson"
+                  onclick="setPayMethod('inperson', this)"
+                  title="Staff-only walk-in payment"
+                >
+                  <span class="pm-icon"></span>EFTPOS / In Person
                 </div>
               </div>
 
@@ -624,8 +686,15 @@
                 <div id="payment-request-button"></div>
               </div>
 
+              <div id="inperson-pay-section" class="hidden">
+                <p class="inperson-note">
+                  Staff mode: process the card on the EFTPOS machine, then
+                  confirm this booking to save it as pending in-person.
+                </p>
+              </div>
+
               <div class="stripe-notice">
-                <span class="stripe-badge">🔒 Stripe</span>
+                <span class="stripe-badge"> Stripe</span>
                 Secured by Stripe. 256-bit SSL encryption.
               </div>
             </div>
@@ -636,11 +705,20 @@
             <div class="final-amount">
               <div class="fa-label">Amount Due</div>
               <div class="fa-price" id="fa-price">$0.00</div>
-              <div class="fa-sub" id="fa-sub">–</div>
+              <div class="fa-sub" id="fa-sub"></div>
+              <div class="fa-breakdown">
+                <div>
+                  <span>Subtotal</span><span id="fa-subtotal">$0.00</span>
+                </div>
+                <div><span>Promo</span><span id="fa-code">-</span></div>
+                <div>
+                  <span>Discount</span><span id="fa-discount">$0.00</span>
+                </div>
+              </div>
             </div>
 
             <button class="btn-primary" id="payBtn" onclick="submitPayment()">
-              <span id="payBtnText">Pay Now →</span>
+              <span id="payBtnText">Pay Now </span>
               <div class="spinner hidden" id="paySpinner"></div>
             </button>
 
@@ -661,19 +739,19 @@
         </div>
 
         <div class="nav-btns" style="margin-top: 16px">
-          <button class="btn-ghost2" onclick="goStep(3)">← Edit Details</button>
+          <button class="btn-ghost2" onclick="goStep(3)">Edit Details</button>
           <span></span>
         </div>
       </div>
 
-      <!-- ════════════════════════════ STEP 5: SUCCESS ════════════════════════════ -->
+      <!--  STEP 5: SUCCESS  -->
       <div class="panel" id="step5">
         <div class="success-wrap">
-          <div class="success-icon">✓</div>
+          <div class="success-icon"></div>
           <h2>Booking Confirmed!</h2>
           <p>
             Your court is reserved. A confirmation email has been sent to
-            <strong id="succ-email">–</strong>.
+            <strong id="succ-email"></strong>.
           </p>
           <p>
             Please arrive 10 minutes before your session. Bring this reference:
@@ -693,19 +771,19 @@
           >
             <div class="confirm-row">
               <span class="lbl">Facility</span
-              ><span class="val" id="succ-fac">–</span>
+              ><span class="val" id="succ-fac"></span>
             </div>
             <div class="confirm-row">
               <span class="lbl">Court</span
-              ><span class="val" id="succ-court">–</span>
+              ><span class="val" id="succ-court"></span>
             </div>
             <div class="confirm-row">
               <span class="lbl">Date &amp; Time</span
-              ><span class="val" id="succ-dt">–</span>
+              ><span class="val" id="succ-dt"></span>
             </div>
             <div class="confirm-row" style="border: none">
               <span class="lbl">Duration</span
-              ><span class="val" id="succ-dur">–</span>
+              ><span class="val" id="succ-dur"></span>
             </div>
           </div>
           <a
@@ -716,8 +794,8 @@
             Book Another Session
           </a>
           <p style="margin-top: 16px">
-            <a href="index.html" style="color: var(--dim); font-size: 0.85rem"
-              >← Return to website</a
+            <a href="index.html" style="color: var(--dim); font-size: 0.85rem">
+              Return to website</a
             >
           </p>
         </div>
@@ -726,12 +804,14 @@
     <!-- /page -->
 
     <script>
-      // ════════════════════════════════════════════════════════════
+      //
       //  STRIPE SETUP
-      //  ▶ Replace 'pk_test_...' with your actual publishable key
-      //  ▶ The backend endpoint /create-checkout-session must be available
-      // ════════════════════════════════════════════════════════════
-      const STRIPE_PK = "pk_test_YOUR_PUBLISHABLE_KEY_HERE";
+      //   Replace 'pk_test_...' with your actual publishable key
+      //   The backend endpoint /create-checkout-session must be available
+      //
+      const STRIPE_PK =
+        window.__SFA_CONFIG__?.STRIPE_PUBLISHABLE_KEY ||
+        "pk_test_YOUR_PUBLISHABLE_KEY_HERE";
       const stripe = Stripe(STRIPE_PK);
       const elements = stripe.elements({ locale: "auto" });
       const PENDING_BOOKING_KEY = "sfa_pending_booking";
@@ -767,11 +847,54 @@
 
       // Payment Request Button (Apple Pay / Google Pay)
       let paymentRequest = null;
+      let walletAvailable = false;
+      function isSecureWalletContext() {
+        const host = window.location.hostname;
+        return (
+          window.location.protocol === "https:" ||
+          host === "localhost" ||
+          host === "127.0.0.1"
+        );
+      }
+
+      function walletUnavailableMessage() {
+        if (!isSecureWalletContext()) {
+          return "Apple Pay requires HTTPS and a verified domain in Stripe. Open this site on your HTTPS domain.";
+        }
+        return "Apple Pay / Google Pay is not available on this browser or device. Use card, or open in Safari with Wallet configured.";
+      }
+
+      function setWalletButtonsState(available) {
+        const walletButtons = document.querySelectorAll(
+          '.pm[onclick*="apple"], .pm[onclick*="google"]',
+        );
+        walletButtons.forEach((btn) => {
+          btn.classList.toggle("unavailable", !available);
+          if (!available) {
+            btn.setAttribute("aria-disabled", "true");
+            btn.setAttribute("title", walletUnavailableMessage());
+          } else {
+            btn.removeAttribute("aria-disabled");
+            btn.removeAttribute("title");
+          }
+        });
+      }
+
       function setupPaymentRequest(amountCents) {
+        if (!isSecureWalletContext()) {
+          walletAvailable = false;
+          setWalletButtonsState(false);
+          const errorEl = document.getElementById("stripe-error");
+          if (errorEl) {
+            errorEl.textContent = walletUnavailableMessage();
+          }
+          return;
+        }
+
         paymentRequest = stripe.paymentRequest({
           country: "US",
           currency: "usd",
-          total: { label: "Smash Force Academy", amount: amountCents },
+          total: { label: "Smashforce Badminton Centre", amount: amountCents },
           requestPayerName: true,
           requestPayerEmail: true,
         });
@@ -779,20 +902,41 @@
           paymentRequest,
         });
         paymentRequest.canMakePayment().then((result) => {
+          walletAvailable = Boolean(result);
+          setWalletButtonsState(walletAvailable);
           if (result) {
             prButton.mount("#payment-request-button");
+            return;
+          }
+
+          if (state.payMethod !== "card") {
+            const payMethods = document.querySelectorAll(".pm");
+            payMethods.forEach((p) => p.classList.remove("sel"));
+            payMethods[0]?.classList.add("sel");
+            state.payMethod = "card";
+            document
+              .getElementById("card-pay-section")
+              .classList.remove("hidden");
+            document
+              .getElementById("wallet-pay-section")
+              .classList.add("hidden");
+          }
+
+          const errorEl = document.getElementById("stripe-error");
+          if (errorEl) {
+            errorEl.textContent = walletUnavailableMessage();
           }
         });
         paymentRequest.on("paymentmethod", async (ev) => {
-          // Handle wallet payment — same flow as card
+          // Handle wallet payment  same flow as card
           ev.complete("success");
           showSuccess();
         });
       }
 
-      // ════════════════════════════════════════════════════════════
+      //
       //  APP STATE
-      // ════════════════════════════════════════════════════════════
+      //
       const state = {
         step: 1,
         facilityType: null, // 'standard' | 'single' | 'table'
@@ -808,6 +952,8 @@
         endTime: "",
         durationHrs: 0.5,
         total: 0,
+        promoCode: "",
+        promoDiscount: 0,
         calYear: 0,
         calMonth: 0,
         payMethod: "card",
@@ -815,13 +961,13 @@
 
       const FACILITIES = {
         standard: {
-          label: "Standard Courts (1–6)",
+          label: "Standard Courts (16)",
           price: 25,
           memberPrice: 20,
           courts: [1, 2, 3, 4, 5, 6],
         },
         single: {
-          label: "Single Courts (7–9)",
+          label: "Single Courts (79)",
           price: 15,
           memberPrice: 12,
           courts: [7, 8, 9],
@@ -848,9 +994,9 @@
         return (BOOKED[key] && BOOKED[key][dateStr]) || [];
       }
 
-      // ════════════════════════════════════════════════════════════
+      //
       //  CALENDAR
-      // ════════════════════════════════════════════════════════════
+      //
       const MONTHS = [
         "January",
         "February",
@@ -886,13 +1032,13 @@
         const maxDate = new Date(today);
         maxDate.setDate(today.getDate() + 60);
 
-        // Prev button — can't go before current month
+        // Prev button  can't go before current month
         const nowM = new Date();
         nowM.setDate(1);
         nowM.setHours(0, 0, 0, 0);
         const viewM = new Date(calYear, calMonth, 1);
         document.getElementById("calPrev").disabled = viewM <= nowM;
-        // Next button — max 2 months ahead
+        // Next button  max 2 months ahead
         const maxM = new Date(nowM);
         maxM.setMonth(maxM.getMonth() + 2);
         document.getElementById("calNext").disabled = viewM >= maxM;
@@ -981,9 +1127,9 @@
         updateSummary();
       }
 
-      // ════════════════════════════════════════════════════════════
+      //
       //  TIME SLOTS
-      // ════════════════════════════════════════════════════════════
+      //
       const MORNING = [
         "6:00 AM",
         "6:30 AM",
@@ -1012,33 +1158,204 @@
         const dateStr = fmtDate(state.date);
         const booked = getBooked(dateStr);
 
+        // If a previously selected slot is now invalid (booked or already past today), reset it.
+        if (
+          state.startTime &&
+          (booked.includes(state.startTime) ||
+            isPastTimeForSelectedDate(state.startTime))
+        ) {
+          state.startTime = "";
+          state.endTime = "";
+        }
+
         let html = '<div class="time-sessions">';
-        html += buildSlotGroup("☀️ Morning Session", MORNING, booked);
-        html += buildSlotGroup("🌙 Evening Session", EVENING, booked);
+        html += buildSlotGroup(" Morning Session", MORNING, booked);
+        html += buildSlotGroup(" Evening Session", EVENING, booked);
         html += "</div>";
         document.getElementById("timeContent").innerHTML = html;
+      }
+
+      function toDateWithTime(baseDate, timeLabel) {
+        const match = String(timeLabel)
+          .trim()
+          .match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+        if (!match) {
+          return null;
+        }
+
+        let hours = Number(match[1]);
+        const minutes = Number(match[2]);
+        const ampm = match[3].toUpperCase();
+
+        hours = hours % 12;
+        if (ampm === "PM") {
+          hours += 12;
+        }
+
+        const date = new Date(baseDate);
+        date.setHours(hours, minutes, 0, 0);
+        return date;
+      }
+
+      function isPastTimeForSelectedDate(timeLabel) {
+        if (!state.date) {
+          return false;
+        }
+
+        const selectedDay = new Date(state.date);
+        selectedDay.setHours(0, 0, 0, 0);
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        if (selectedDay.getTime() !== today.getTime()) {
+          return false;
+        }
+
+        const slotDateTime = toDateWithTime(state.date, timeLabel);
+        if (!slotDateTime) {
+          return false;
+        }
+
+        return slotDateTime <= new Date();
       }
 
       function buildSlotGroup(label, times, booked) {
         let h = `<div><div class="sess-label">${label}</div><div class="slots-grid">`;
         times.forEach((t) => {
           const isTaken = booked.includes(t);
+          const isPast = isPastTimeForSelectedDate(t);
           const isSel = t === state.startTime;
-          h += `<div class="slot${isTaken ? " taken" : ""}${isSel ? " selected" : ""}"
-               ${isTaken ? "" : "onclick=\"selectSlot('" + t + "')\""}>${t}</div>`;
+          const isDisabled = isTaken || isPast;
+          h += `<div class="slot${isTaken ? " taken" : ""}${isPast ? " past" : ""}${isSel ? " selected" : ""}"
+               ${isDisabled ? "" : "onclick=\"selectSlot('" + t + "')\""}>${t}</div>`;
         });
         h += "</div></div>";
         return h;
       }
 
       function selectSlot(time) {
+        clearFormError();
         state.startTime = time;
         state.endTime = calcEndTime(time, state.durationHrs);
         renderTimeSlots();
         updateSummary();
       }
 
+      function showFormError(message) {
+        const errorEl = document.getElementById("booking-form-error");
+        if (!errorEl) {
+          return;
+        }
+        errorEl.textContent = message;
+        errorEl.classList.remove("hidden");
+      }
+
+      function clearFormError() {
+        const errorEl = document.getElementById("booking-form-error");
+        if (!errorEl) {
+          return;
+        }
+        errorEl.textContent = "";
+        errorEl.classList.add("hidden");
+      }
+
+      function setPromoFeedback(message = "", type = "") {
+        const el = document.getElementById("promo-feedback");
+        if (!el) {
+          return;
+        }
+        el.textContent = message;
+        el.classList.remove("success", "error");
+        if (type === "success" || type === "error") {
+          el.classList.add(type);
+        }
+      }
+
+      function clearAppliedPromo({ keepInput = true } = {}) {
+        if (!keepInput) {
+          const promoInput = document.getElementById("f-promo");
+          if (promoInput) {
+            promoInput.value = "";
+          }
+        }
+        state.promoCode = "";
+        state.promoDiscount = 0;
+        setPromoFeedback("");
+        updateSummary();
+      }
+
+      function handlePromoInputChange() {
+        const promoInput = document.getElementById("f-promo");
+        const typed = String(promoInput?.value || "")
+          .trim()
+          .toUpperCase();
+        if (typed !== state.promoCode) {
+          state.promoCode = "";
+          state.promoDiscount = 0;
+          setPromoFeedback("");
+          updateSummary();
+        }
+      }
+
+      async function applyPromoCode() {
+        const promoInput = document.getElementById("f-promo");
+        const code = String(promoInput?.value || "")
+          .trim()
+          .toUpperCase();
+
+        if (!code) {
+          setPromoFeedback("Enter a promo code first.", "error");
+          return;
+        }
+
+        if (!state.facilityType) {
+          setPromoFeedback("Select a facility first.", "error");
+          return;
+        }
+
+        try {
+          const payload = { ...getCheckoutPayload(), promoCode: code };
+          const res = await fetch("/validate-promo", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+
+          const data = await readJsonResponse(res);
+          if (!res.ok) {
+            throw new Error(data?.error || "Promo code is invalid.");
+          }
+
+          state.promoCode = String(data?.promoCode || "");
+          state.promoDiscount = Math.max(
+            0,
+            Number(data?.discountAmount || 0) / 100,
+          );
+          if (!state.promoCode || state.promoDiscount <= 0) {
+            setPromoFeedback("Promo code is valid but no discount applies.");
+          } else {
+            setPromoFeedback(
+              `${state.promoCode} applied: -$${state.promoDiscount.toFixed(2)}`,
+              "success",
+            );
+          }
+          updateSummary();
+        } catch (err) {
+          state.promoCode = "";
+          state.promoDiscount = 0;
+          setPromoFeedback(
+            err.message || "Could not apply promo code.",
+            "error",
+          );
+          updateSummary();
+        }
+      }
+
       function setDuration(hrs, btn) {
+        if (state.promoCode) {
+          clearAppliedPromo();
+        }
         state.durationHrs = hrs;
         document
           .querySelectorAll(".dur-btn")
@@ -1062,10 +1379,14 @@
         return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
       }
 
-      // ════════════════════════════════════════════════════════════
+      //
       //  FACILITY SELECTION
-      // ════════════════════════════════════════════════════════════
+      //
       function selectFacility(type, card) {
+        clearFormError();
+        if (state.promoCode) {
+          clearAppliedPromo();
+        }
         document
           .querySelectorAll(".fac-card")
           .forEach((c) => c.classList.remove("selected"));
@@ -1097,12 +1418,14 @@
           const el = document.createElement("div");
           el.className = "court-num";
           el.textContent = n;
-          el.onclick = () => selectCourt(n, el, type);
+          el.onclick = (event) => selectCourt(n, el, type, event);
           container.appendChild(el);
         });
       }
 
-      function selectCourt(num, el, type) {
+      function selectCourt(num, el, type, event) {
+        event?.stopPropagation();
+        clearFormError();
         document
           .querySelectorAll(`#cn-${type} .court-num`)
           .forEach((e) => e.classList.remove("selected"));
@@ -1112,7 +1435,9 @@
         updateSummary();
       }
 
-      function selectTable(num, el) {
+      function selectTable(num, el, event) {
+        event?.stopPropagation();
+        clearFormError();
         document
           .querySelectorAll("#cn-table .tbl-card")
           .forEach((e) => e.classList.remove("selected"));
@@ -1122,17 +1447,23 @@
         updateSummary();
       }
 
-      // ════════════════════════════════════════════════════════════
+      //
       //  MEMBERSHIP
-      // ════════════════════════════════════════════════════════════
+      //
       function applyMembership() {
         if (!authState.user) {
           document.getElementById("mem-check").checked = false;
           state.isMember = false;
+          if (state.promoCode) {
+            clearAppliedPromo();
+          }
           updateSummary();
           return;
         }
         state.isMember = document.getElementById("mem-check").checked;
+        if (state.promoCode) {
+          clearAppliedPromo();
+        }
         document
           .getElementById("mem-saving")
           .classList.toggle("hidden", !state.isMember);
@@ -1144,6 +1475,9 @@
         if (!authState.user && v) {
           document.getElementById("f-membership").value = "";
           state.isMember = false;
+          if (state.promoCode) {
+            clearAppliedPromo();
+          }
           updateSummary();
           return;
         }
@@ -1155,6 +1489,9 @@
             authState.user.membershipType;
         }
         state.isMember = !!(authState.user?.membershipType || "");
+        if (state.promoCode) {
+          clearAppliedPromo();
+        }
         document.getElementById("mem-check") &&
           (document.getElementById("mem-check").checked = state.isMember);
         document.getElementById("mem-saving") &&
@@ -1164,9 +1501,9 @@
         updateSummary();
       }
 
-      // ════════════════════════════════════════════════════════════
+      //
       //  SUMMARY UPDATE
-      // ════════════════════════════════════════════════════════════
+      //
       function effectivePrice() {
         if (state.isMember && authState.user) {
           const memType = authState.user.membershipType || "";
@@ -1273,6 +1610,7 @@
         const status = document.getElementById("auth-status");
         const openBtn = document.getElementById("auth-open-btn");
         const logoutBtn = document.getElementById("auth-logout-btn");
+        const inPersonOption = document.getElementById("pm-inperson");
 
         if (authState.user) {
           status.textContent = `Logged in: ${authState.user.name}`;
@@ -1280,6 +1618,19 @@
           logoutBtn.classList.remove("hidden");
           setMembershipEnabled(true);
           prefillUserDetails();
+
+          if (inPersonOption) {
+            inPersonOption.classList.toggle("hidden", !authState.user.isAdmin);
+          }
+
+          if (!authState.user.isAdmin && state.payMethod === "inperson") {
+            const cardMethodBtn = document.querySelector(
+              '.pm[onclick*="card"]',
+            );
+            if (cardMethodBtn) {
+              setPayMethod("card", cardMethodBtn);
+            }
+          }
           return;
         }
 
@@ -1287,6 +1638,16 @@
         openBtn.classList.remove("hidden");
         logoutBtn.classList.add("hidden");
         setMembershipEnabled(false);
+
+        if (inPersonOption) {
+          inPersonOption.classList.add("hidden");
+        }
+        if (state.payMethod === "inperson") {
+          const cardMethodBtn = document.querySelector('.pm[onclick*="card"]');
+          if (cardMethodBtn) {
+            setPayMethod("card", cardMethodBtn);
+          }
+        }
       }
 
       function switchAuthTab(tab) {
@@ -1314,6 +1675,26 @@
         const modal = document.getElementById("authModal");
         modal.classList.add("hidden");
         modal.setAttribute("aria-hidden", "true");
+      }
+
+      function bindMembershipLoginPrompt() {
+        const lockMsg = document.getElementById("mem-lock-msg");
+        if (!lockMsg || lockMsg.dataset.bound === "1") {
+          return;
+        }
+
+        lockMsg.dataset.bound = "1";
+        lockMsg.addEventListener("click", (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          openAuthModal("login");
+        });
+        lockMsg.addEventListener("keydown", (event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            openAuthModal("login");
+          }
+        });
       }
 
       async function readJsonResponse(res) {
@@ -1383,11 +1764,16 @@
         renderAuthState();
       }
 
-      function calcTotal() {
+      function calcSubtotal() {
         return effectivePrice() * state.durationHrs;
       }
 
+      function calcTotal() {
+        return Math.max(0, calcSubtotal() - state.promoDiscount);
+      }
+
       function updateSummary() {
+        const subtotal = calcSubtotal();
         const total = calcTotal();
         state.total = total;
         const dur =
@@ -1395,38 +1781,50 @@
             ? "30 min"
             : `${state.durationHrs} hr${state.durationHrs > 1 ? "s" : ""}`;
         const timeStr = state.startTime
-          ? `${state.startTime} – ${state.endTime}`
-          : "–";
+          ? `${state.startTime} - ${state.endTime}`
+          : "-";
 
         // Step 2 sidebar
-        setText("sum-fac", state.facilityLabel || "–");
-        setText("sum-court", state.courtLabel || "–");
-        setText("sum-date", state.dateLabel || "–");
+        setText("sum-fac", state.facilityLabel || "-");
+        setText("sum-court", state.courtLabel || "-");
+        setText("sum-date", state.dateLabel || "-");
         setText("sum-time", timeStr);
-        setText("sum-dur", state.startTime ? dur : "–");
+        setText("sum-dur", state.startTime ? dur : "-");
         setText(
           "sum-rate",
           state.facilityLabel
             ? `$${effectivePrice()}/hr${state.isMember ? " (member)" : ""}`
-            : "–",
+            : "-",
         );
+        setText("sum-promo", state.promoCode || "-");
+        setText("sum-discount", `-$${state.promoDiscount.toFixed(2)}`);
         setText(
           "sum-total",
           state.startTime ? `$${total.toFixed(2)}` : "$0.00",
         );
 
         // Step 3 sidebar
-        setText("s3-fac", state.facilityLabel || "–");
-        setText("s3-court", state.courtLabel || "–");
-        setText("s3-date", state.dateLabel || "–");
+        setText("s3-fac", state.facilityLabel || "-");
+        setText("s3-court", state.courtLabel || "-");
+        setText("s3-date", state.dateLabel || "-");
         setText("s3-time", timeStr);
         setText("s3-dur", dur);
+        setText("s3-promo", state.promoCode || "-");
+        setText("s3-discount", `-$${state.promoDiscount.toFixed(2)}`);
         setText("s3-total", `$${total.toFixed(2)}`);
 
         // Step 4 final
         setText("fa-price", `$${total.toFixed(2)}`);
-        setText("fa-sub", `${dur} · ${state.facilityLabel}`);
-        setText("payBtnText", `Pay $${total.toFixed(2)} →`);
+        setText("fa-sub", `${dur} - ${state.facilityLabel}`);
+        setText("fa-subtotal", `$${subtotal.toFixed(2)}`);
+        setText("fa-code", state.promoCode || "-");
+        setText("fa-discount", `-$${state.promoDiscount.toFixed(2)}`);
+        setText(
+          "payBtnText",
+          state.payMethod === "inperson"
+            ? `Confirm In-Person $${total.toFixed(2)} `
+            : `Pay $${total.toFixed(2)} `,
+        );
       }
 
       function setText(id, val) {
@@ -1434,9 +1832,9 @@
         if (el) el.textContent = val;
       }
 
-      // ════════════════════════════════════════════════════════════
+      //
       //  STEP NAVIGATION
-      // ════════════════════════════════════════════════════════════
+      //
       function goStep(n) {
         document
           .querySelectorAll(".panel")
@@ -1457,12 +1855,13 @@
       }
 
       function step1Next() {
+        clearFormError();
         if (!state.facilityType) {
-          alert("Please select a facility type.");
+          showFormError("Please select a facility type.");
           return;
         }
         if (!state.courtNum) {
-          alert("Please select a specific court or table number.");
+          showFormError("Please select a specific court or table number.");
           return;
         }
         initCalendar();
@@ -1470,28 +1869,30 @@
       }
 
       function step2Next() {
+        clearFormError();
         if (!state.date) {
-          alert("Please select a date.");
+          showFormError("Please select a date.");
           return;
         }
         if (!state.startTime) {
-          alert("Please select a start time.");
+          showFormError("Please select a start time.");
           return;
         }
         goStep(3);
       }
 
       function step3Next() {
+        clearFormError();
         const fname = document.getElementById("f-fname").value.trim();
         const lname = document.getElementById("f-lname").value.trim();
         const email = document.getElementById("f-email").value.trim();
         const phone = document.getElementById("f-phone").value.trim();
         if (!fname || !lname || !email || !phone) {
-          alert("Please fill in all required fields.");
+          showFormError("Please fill in all required fields.");
           return;
         }
         if (!/\S+@\S+\.\S+/.test(email)) {
-          alert("Please enter a valid email address.");
+          showFormError("Please enter a valid email address.");
           return;
         }
         goStep(4);
@@ -1514,9 +1915,9 @@
         }
       }
 
-      // ════════════════════════════════════════════════════════════
+      //
       //  POPULATE STEP 4 CONFIRM
-      // ════════════════════════════════════════════════════════════
+      //
       function populateConfirm() {
         const fname = document.getElementById("f-fname").value;
         const lname = document.getElementById("f-lname").value;
@@ -1535,7 +1936,7 @@
         setText("c-fac", state.facilityLabel);
         setText("c-court", state.courtLabel);
         setText("c-date", state.dateLabel);
-        setText("c-time", `${state.startTime} – ${state.endTime}`);
+        setText("c-time", `${state.startTime} - ${state.endTime}`);
         const dur =
           state.durationHrs === 0.5
             ? "30 min"
@@ -1545,10 +1946,44 @@
         updateSummary();
       }
 
-      // ════════════════════════════════════════════════════════════
+      //
       //  PAYMENT SUBMISSION
-      // ════════════════════════════════════════════════════════════
+      //
       function setPayMethod(method, el) {
+        if ((method === "apple" || method === "google") && !walletAvailable) {
+          const payMethods = document.querySelectorAll(".pm");
+          payMethods.forEach((p) => p.classList.remove("sel"));
+          payMethods[0]?.classList.add("sel");
+          state.payMethod = "card";
+          document
+            .getElementById("card-pay-section")
+            .classList.remove("hidden");
+          document.getElementById("wallet-pay-section").classList.add("hidden");
+          document
+            .getElementById("inperson-pay-section")
+            .classList.add("hidden");
+          document.getElementById("stripe-error").textContent =
+            walletUnavailableMessage();
+          return;
+        }
+
+        if (method === "inperson" && !authState.user?.isAdmin) {
+          const payMethods = document.querySelectorAll(".pm");
+          payMethods.forEach((p) => p.classList.remove("sel"));
+          payMethods[0]?.classList.add("sel");
+          state.payMethod = "card";
+          document
+            .getElementById("card-pay-section")
+            .classList.remove("hidden");
+          document.getElementById("wallet-pay-section").classList.add("hidden");
+          document
+            .getElementById("inperson-pay-section")
+            .classList.add("hidden");
+          document.getElementById("stripe-error").textContent =
+            "In-person EFTPOS is available for staff/admin accounts only.";
+          return;
+        }
+
         state.payMethod = method;
         document
           .querySelectorAll(".pm")
@@ -1559,7 +1994,19 @@
           .classList.toggle("hidden", method !== "card");
         document
           .getElementById("wallet-pay-section")
-          .classList.toggle("hidden", method === "card");
+          .classList.toggle(
+            "hidden",
+            method === "card" || method === "inperson",
+          );
+        document
+          .getElementById("inperson-pay-section")
+          .classList.toggle("hidden", method !== "inperson");
+
+        if (method !== "card") {
+          document.getElementById("stripe-error").textContent = "";
+        }
+
+        updateSummary();
       }
 
       function getCheckoutPayload() {
@@ -1570,7 +2017,7 @@
         const membershipType = document.getElementById("f-membership").value;
         return {
           facility: state.facilityType,
-          date: state.date ? fmtDateISO(state.date) : "",
+          date: state.date ? fmtDate(state.date) : "",
           time: `${state.startTime} - ${state.endTime}`,
           duration: state.durationHrs,
           court: state.courtLabel,
@@ -1579,6 +2026,7 @@
           phone,
           isMember: Boolean(state.isMember),
           membershipType,
+          promoCode: state.promoCode,
         };
       }
 
@@ -1591,6 +2039,8 @@
             startTime: state.startTime,
             endTime: state.endTime,
             durationHrs: state.durationHrs,
+            promoCode: state.promoCode,
+            promoDiscount: state.promoDiscount,
           },
           email: document.getElementById("f-email").value.trim(),
         };
@@ -1612,12 +2062,21 @@
             state.startTime = pending.state.startTime || "";
             state.endTime = pending.state.endTime || "";
             state.durationHrs = Number(pending.state.durationHrs || 0.5);
+            state.promoCode = String(pending.state.promoCode || "");
+            state.promoDiscount = Math.max(
+              0,
+              Number(pending.state.promoDiscount || 0),
+            );
           }
           if (pending.email) {
             const emailInput = document.getElementById("f-email");
             if (emailInput) {
               emailInput.value = pending.email;
             }
+          }
+          const promoInput = document.getElementById("f-promo");
+          if (promoInput && state.promoCode) {
+            promoInput.value = state.promoCode;
           }
           return pending;
         } catch (err) {
@@ -1638,6 +2097,26 @@
         errorEl.textContent = "";
 
         try {
+          if (state.payMethod === "inperson") {
+            const inPersonResponse = await fetch("/create-inperson-booking", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(getCheckoutPayload()),
+            });
+
+            const inPersonData = await readJsonResponse(inPersonResponse);
+            if (!inPersonResponse.ok) {
+              throw new Error(
+                inPersonData?.error ||
+                  "Could not save in-person booking. Please try again.",
+              );
+            }
+
+            sessionStorage.removeItem(PENDING_BOOKING_KEY);
+            showSuccess(inPersonData?.bookingId || "");
+            return;
+          }
+
           persistPendingBooking();
           const checkoutPayload = getCheckoutPayload();
 
@@ -1723,9 +2202,9 @@
         }
       }
 
-      // ════════════════════════════════════════════════════════════
+      //
       //  SUCCESS
-      // ════════════════════════════════════════════════════════════
+      //
       function showSuccess(sessionId = "") {
         const ref = sessionId
           ? `SFA-${sessionId.slice(-8).toUpperCase()}`
@@ -1741,7 +2220,7 @@
         setText("succ-court", state.courtLabel);
         setText(
           "succ-dt",
-          `${state.dateLabel}, ${state.startTime} – ${state.endTime}`,
+          `${state.dateLabel}, ${state.startTime} - ${state.endTime}`,
         );
         setText("succ-dur", dur);
 
@@ -1805,9 +2284,10 @@
           );
         });
 
-      // ════════════════════════════════════════════════════════════
+      //
       //  INIT
-      // ════════════════════════════════════════════════════════════
+      //
+      bindMembershipLoginPrompt();
       updateProgressBar(1);
       updateSummary();
       renderAuthState();
