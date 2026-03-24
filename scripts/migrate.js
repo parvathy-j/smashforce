@@ -49,16 +49,17 @@ async function main() {
       console.log("Connecting via DATABASE_URL …");
       connection = await mysql.createConnection(process.env.DATABASE_URL);
     } else {
-      const host = process.env.MYSQL_HOST || "127.0.0.1";
-      const port = Number(process.env.MYSQL_PORT || 3306);
-      const user = process.env.MYSQL_USER || "root";
-      const database = process.env.MYSQL_DATABASE || "smashforce";
+      const host = process.env.MYSQL_HOST || process.env.MYSQLHOST || "127.0.0.1";
+      const port = Number(process.env.MYSQL_PORT || process.env.MYSQLPORT || 3306);
+      const user = process.env.MYSQL_USER || process.env.MYSQLUSER || "root";
+      const database =
+        process.env.MYSQL_DATABASE || process.env.MYSQLDATABASE || "smashforce";
       console.log(`Connecting to MySQL at ${host}:${port}/${database} …`);
       connection = await mysql.createConnection({
         host,
         port,
         user,
-        password: process.env.MYSQL_PASSWORD || "",
+        password: process.env.MYSQL_PASSWORD || process.env.MYSQLPASSWORD || "",
         database,
         multipleStatements: true,
       });
@@ -82,19 +83,12 @@ async function main() {
   try {
     // Split on statement boundaries so we can execute each one individually,
     // which avoids needing multipleStatements when connecting via URL.
-    //
-    // For idempotency, rewrite any bare `CREATE INDEX` to
-    // `CREATE INDEX IF NOT EXISTS` so re-runs don't fail when the index
-    // already exists (MySQL 8.0.12+ supports the IF NOT EXISTS clause).
-    // As a belt-and-suspenders fallback we also swallow ER_DUP_KEYNAME
-    // (errno 1061) for index statements on older MySQL versions.
+    // For idempotency, swallow duplicate-index errors (ER_DUP_KEYNAME 1061)
+    // when re-running index statements.
     const statements = sql
-      .split(/;\s*\n/)
+      .split(/;\s*(?:\r?\n|$)/)
       .map((s) => s.trim())
-      .filter((s) => s.length > 0 && !s.startsWith("--"))
-      .map((s) =>
-        s.replace(/^CREATE INDEX\b/i, "CREATE INDEX IF NOT EXISTS"),
-      );
+      .filter((s) => s.length > 0 && !s.startsWith("--"));
 
     for (const statement of statements) {
       try {
