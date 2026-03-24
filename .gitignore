@@ -20,13 +20,8 @@ yarn-error.log*
 smashforce-deploy.zip
 .deploy_stage/
 
-# Images (handled outside git)
-*.png
-*.jpg
-*.jpeg
-*.gif
-*.webp
-*.svg
+# Generated images
+Gemini_Generated_*.png
 
 # OS artifacts
 .DS_Store
