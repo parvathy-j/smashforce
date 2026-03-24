@@ -442,7 +442,7 @@ nav {
       rgba(var(--secondary-rgb), 0.1) 0%,
       transparent 60%
     ),
-    url("Gemini_Generated_Image_g85ivdg85ivdg85i.png") center center / cover
+    url("standard-court.png") center center / cover
       no-repeat,
     var(--navy);
   filter: saturate(0.92) contrast(1.02);
