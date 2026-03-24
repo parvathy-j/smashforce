@@ -172,10 +172,10 @@ async function loadAdminBookings() {
   try {
     const query = buildBookingsQuery();
     const response = await fetch(`/admin/bookings?${query}`);
+    const data = await response.json().catch(() => ({}));
     if (!response.ok) {
-      throw new Error("Could not load bookings.");
+      throw new Error(data?.error || "Could not load bookings.");
     }
-    const data = await response.json();
     renderBookingRows(data.bookings || []);
   } catch (err) {
     setStatus(err.message || "Failed to load bookings.");

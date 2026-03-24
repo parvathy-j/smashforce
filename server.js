@@ -755,36 +755,92 @@ async function listBookings(filters = {}) {
   const limit = Math.max(1, Math.min(Number(filters.limit || 100), 500));
   const whereClause = where.length ? `WHERE ${where.join(" AND ")}` : "";
 
-  return dbAll(
-    `SELECT
-      b.id,
-      b.user_id AS userId,
-      b.customer_name AS customerName,
-      b.customer_email AS customerEmail,
-      b.customer_phone AS customerPhone,
-      b.facility,
-      b.booking_date AS bookingDate,
-      b.booking_time AS bookingTime,
-      b.duration,
-      b.court,
-      b.membership_type AS membershipType,
-      b.applied_membership AS appliedMembership,
-      b.amount,
-      b.currency,
-      b.payment_status AS paymentStatus,
-      b.checkout_session_id AS checkoutSessionId,
-      b.payment_intent_id AS paymentIntentId,
-      b.source,
-      b.created_at AS createdAt,
-      u.name AS accountName,
-      u.email AS accountEmail
-    FROM bookings b
-    LEFT JOIN users u ON u.id = b.user_id
-    ${whereClause}
-    ORDER BY b.created_at DESC
-    LIMIT ?`,
-    [...params, limit],
-  );
+  try {
+    return await dbAll(
+      `SELECT
+        b.id,
+        b.user_id AS userId,
+        b.customer_name AS customerName,
+        b.customer_email AS customerEmail,
+        b.customer_phone AS customerPhone,
+        b.facility,
+        b.booking_date AS bookingDate,
+        b.booking_time AS bookingTime,
+        b.duration,
+        b.court,
+        b.membership_type AS membershipType,
+        b.applied_membership AS appliedMembership,
+        b.amount,
+        b.currency,
+        b.payment_status AS paymentStatus,
+        b.checkout_session_id AS checkoutSessionId,
+        b.payment_intent_id AS paymentIntentId,
+        b.source,
+        b.created_at AS createdAt,
+        u.name AS accountName,
+        u.email AS accountEmail
+      FROM bookings b
+      LEFT JOIN users u ON u.id = b.user_id
+      ${whereClause}
+      ORDER BY b.created_at DESC
+      LIMIT ?`,
+      [...params, limit],
+    );
+  } catch (err) {
+    const message = String(err?.message || "").toLowerCase();
+    const isSchemaMismatch =
+      message.includes("unknown column") ||
+      message.includes("no such column") ||
+      message.includes("doesn't exist");
+
+    if (!isSchemaMismatch) {
+      throw err;
+    }
+
+    const fallbackRows = await dbAll(
+      `SELECT
+        b.id,
+        b.customer_name AS customerName,
+        b.customer_email AS customerEmail,
+        b.facility,
+        b.booking_date AS bookingDate,
+        b.booking_time AS bookingTime,
+        b.court,
+        b.amount,
+        b.currency,
+        b.payment_status AS paymentStatus,
+        b.created_at AS createdAt
+      FROM bookings b
+      ${whereClause}
+      ORDER BY b.created_at DESC
+      LIMIT ?`,
+      [...params, limit],
+    );
+
+    return fallbackRows.map((row) => ({
+      id: row.id,
+      userId: null,
+      customerName: row.customerName,
+      customerEmail: row.customerEmail,
+      customerPhone: "",
+      facility: row.facility,
+      bookingDate: row.bookingDate,
+      bookingTime: row.bookingTime,
+      duration: "",
+      court: row.court,
+      membershipType: "",
+      appliedMembership: "none",
+      amount: row.amount,
+      currency: row.currency,
+      paymentStatus: row.paymentStatus,
+      checkoutSessionId: "",
+      paymentIntentId: "",
+      source: "",
+      createdAt: row.createdAt,
+      accountName: "",
+      accountEmail: "",
+    }));
+  }
 }
 
 async function getSiteContent() {
@@ -1127,11 +1183,12 @@ async function initMysqlDatabase() {
     mysqlPool = mysql.createPool(process.env.DATABASE_URL);
   } else {
     mysqlPool = mysql.createPool({
-      host: process.env.MYSQL_HOST || "127.0.0.1",
-      port: Number(process.env.MYSQL_PORT || 3306),
-      user: process.env.MYSQL_USER || "root",
-      password: process.env.MYSQL_PASSWORD || "",
-      database: process.env.MYSQL_DATABASE || "smashforce",
+      host: process.env.MYSQL_HOST || process.env.MYSQLHOST || "127.0.0.1",
+      port: Number(process.env.MYSQL_PORT || process.env.MYSQLPORT || 3306),
+      user: process.env.MYSQL_USER || process.env.MYSQLUSER || "root",
+      password: process.env.MYSQL_PASSWORD || process.env.MYSQLPASSWORD || "",
+      database:
+        process.env.MYSQL_DATABASE || process.env.MYSQLDATABASE || "smashforce",
       waitForConnections: true,
       connectionLimit: Number(process.env.MYSQL_CONNECTION_LIMIT || 10),
       queueLimit: 0,
