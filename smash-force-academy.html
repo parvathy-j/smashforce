@@ -600,9 +600,7 @@
                 <div class="cc-ico">📞</div>
                 <div>
                   <div class="cc-lb">Phone</div>
-                  <div class="cc-v" id="contactPhoneText">
-                    +61 370 447 733
-                  </div>
+                  <div class="cc-v" id="contactPhoneText">+61 370 447 733</div>
                 </div>
               </div>
               <div class="cc rv">
@@ -631,26 +629,34 @@
             <div class="fg-2">
               <div class="fg">
                 <label>First Name</label
-                ><input type="text" placeholder="John" />
+                ><input id="contactFirstName" type="text" placeholder="John" />
               </div>
               <div class="fg">
                 <label>Last Name</label
-                ><input type="text" placeholder="Smith" />
+                ><input id="contactLastName" type="text" placeholder="Smith" />
               </div>
             </div>
             <div class="fg-2">
               <div class="fg">
                 <label>Email</label
-                ><input type="email" placeholder="john@email.com" />
+                ><input
+                  id="contactEmailInput"
+                  type="email"
+                  placeholder="john@email.com"
+                />
               </div>
               <div class="fg">
                 <label>Phone</label
-                ><input type="tel" placeholder="+1 555 000 0000" />
+                ><input
+                  id="contactPhoneInput"
+                  type="tel"
+                  placeholder="+1 555 000 0000"
+                />
               </div>
             </div>
             <div class="fg">
               <label>Topic</label>
-              <select>
+              <select id="contactTopic">
                 <option value="">Select a topic...</option>
                 <option>Court Booking</option>
                 <option>Membership Enquiry</option>
@@ -661,7 +667,10 @@
             </div>
             <div class="fg">
               <label>Message</label>
-              <textarea placeholder="How can we help?"></textarea>
+              <textarea
+                id="contactMessage"
+                placeholder="How can we help?"
+              ></textarea>
             </div>
             <button
               class="btn-lime"
@@ -671,7 +680,8 @@
                 border: none;
                 font-size: 0.85rem;
               "
-              onclick="showToast('✅ Message sent! We\'ll reply shortly.')"
+              type="button"
+              onclick="sendContactMessage()"
             >
               Send Message →
             </button>

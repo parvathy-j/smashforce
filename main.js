@@ -203,6 +203,41 @@ function showToast(msg) {
   setTimeout(() => t.classList.remove("show"), 3500);
 }
 
+function sendContactMessage() {
+  const to = "info@smashforcebaminton.com";
+  const firstName =
+    document.getElementById("contactFirstName")?.value.trim() || "";
+  const lastName =
+    document.getElementById("contactLastName")?.value.trim() || "";
+  const fromEmail =
+    document.getElementById("contactEmailInput")?.value.trim() || "";
+  const phone =
+    document.getElementById("contactPhoneInput")?.value.trim() || "";
+  const topic =
+    document.getElementById("contactTopic")?.value.trim() || "General Enquiry";
+  const message = document.getElementById("contactMessage")?.value.trim() || "";
+
+  if (!message) {
+    showToast("Please add a message before sending.");
+    return;
+  }
+
+  const fullName = `${firstName} ${lastName}`.trim() || "Website Visitor";
+  const subject = `Website Contact: ${topic}`;
+  const bodyLines = [
+    `Name: ${fullName}`,
+    `Email: ${fromEmail || "Not provided"}`,
+    `Phone: ${phone || "Not provided"}`,
+    "",
+    "Message:",
+    message,
+  ];
+
+  const mailto = `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(bodyLines.join("\n"))}`;
+  window.location.href = mailto;
+  showToast("Opening your email app...");
+}
+
 // ── Nav Highlight on Scroll ──
 const secs = document.querySelectorAll("section[id]");
 const navLinks = document.querySelectorAll(".nav-ul a");
