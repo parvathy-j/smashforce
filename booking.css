@@ -198,6 +198,21 @@ nav {
   gap: 8px;
 }
 
+.auth-link-btn {
+  border: none;
+  background: transparent;
+  color: var(--secondary);
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-align: left;
+  padding: 4px 0;
+  cursor: pointer;
+}
+
+.auth-link-btn:hover {
+  color: var(--white);
+}
+
 .auth-form label {
   font-size: 0.68rem;
   letter-spacing: 1.4px;

@@ -49,8 +49,11 @@ async function main() {
       console.log("Connecting via DATABASE_URL …");
       connection = await mysql.createConnection(process.env.DATABASE_URL);
     } else {
-      const host = process.env.MYSQL_HOST || process.env.MYSQLHOST || "127.0.0.1";
-      const port = Number(process.env.MYSQL_PORT || process.env.MYSQLPORT || 3306);
+      const host =
+        process.env.MYSQL_HOST || process.env.MYSQLHOST || "127.0.0.1";
+      const port = Number(
+        process.env.MYSQL_PORT || process.env.MYSQLPORT || 3306,
+      );
       const user = process.env.MYSQL_USER || process.env.MYSQLUSER || "root";
       const database =
         process.env.MYSQL_DATABASE || process.env.MYSQLDATABASE || "smashforce";
@@ -97,11 +100,8 @@ async function main() {
         // ER_DUP_KEYNAME (1061): index already exists — safe to ignore when
         // the statement is a CREATE INDEX (covers older MySQL that doesn't
         // support IF NOT EXISTS on indexes).
-        const isDupKey =
-          err.errno === 1061 || err.code === "ER_DUP_KEYNAME";
-        const isIndexStmt = /^CREATE\s+(?:UNIQUE\s+)?INDEX\b/i.test(
-          statement,
-        );
+        const isDupKey = err.errno === 1061 || err.code === "ER_DUP_KEYNAME";
+        const isIndexStmt = /^CREATE\s+(?:UNIQUE\s+)?INDEX\b/i.test(statement);
         if (isDupKey && isIndexStmt) {
           console.warn(
             `WARN: Index already exists, skipping: ${statement.split("\n")[0]}`,

@@ -78,6 +78,57 @@
             placeholder="Enter your password"
           />
           <button class="btn-primary" type="submit">Login</button>
+          <button class="auth-link-btn" id="forgotPasswordBtn" type="button">
+            Forgot password?
+          </button>
+        </form>
+
+        <form id="forgotForm" class="auth-form hidden">
+          <label for="forgotEmail">Email</label>
+          <input
+            id="forgotEmail"
+            type="email"
+            required
+            placeholder="you@email.com"
+          />
+          <button class="btn-primary" type="submit">Send Reset Link</button>
+          <button class="auth-link-btn" id="backToLoginBtn" type="button">
+            Back to login
+          </button>
+        </form>
+
+        <form id="resetForm" class="auth-form hidden">
+          <label for="resetToken">Reset Token</label>
+          <input
+            id="resetToken"
+            type="text"
+            required
+            placeholder="Paste reset token"
+          />
+          <label for="resetPassword">New Password</label>
+          <input
+            id="resetPassword"
+            type="password"
+            required
+            minlength="8"
+            placeholder="Minimum 8 characters"
+          />
+          <label for="resetPasswordConfirm">Confirm New Password</label>
+          <input
+            id="resetPasswordConfirm"
+            type="password"
+            required
+            minlength="8"
+            placeholder="Repeat new password"
+          />
+          <button class="btn-primary" type="submit">Reset Password</button>
+          <button
+            class="auth-link-btn"
+            id="backToLoginFromResetBtn"
+            type="button"
+          >
+            Back to login
+          </button>
         </form>
 
         <form id="signupForm" class="auth-form hidden">
@@ -1575,8 +1626,12 @@
       //  MEMBERSHIP
       //
       function applyMembership() {
+        const memCheck = document.getElementById("mem-check");
         if (!authState.user) {
-          document.getElementById("mem-check").checked = false;
+          if (memCheck) {
+            memCheck.checked = false;
+            memCheck.dataset.membershipBoundUser = "";
+          }
           state.isMember = false;
           if (state.promoCode) {
             clearAppliedPromo();
@@ -1584,7 +1639,10 @@
           updateSummary();
           return;
         }
-        state.isMember = document.getElementById("mem-check").checked;
+        state.isMember = Boolean(memCheck?.checked);
+        if (memCheck) {
+          memCheck.dataset.membershipBoundUser = authState.user.id || "";
+        }
         if (state.promoCode) {
           clearAppliedPromo();
         }
@@ -1596,6 +1654,7 @@
 
       function updateMemberSelect() {
         const v = document.getElementById("f-membership").value;
+        const memCheck = document.getElementById("mem-check");
         if (!authState.user && v) {
           document.getElementById("f-membership").value = "";
           state.isMember = false;
@@ -1612,12 +1671,14 @@
           document.getElementById("f-membership").value =
             authState.user.membershipType;
         }
-        state.isMember = !!(authState.user?.membershipType || "");
+        state.isMember = Boolean(memCheck?.checked);
         if (state.promoCode) {
           clearAppliedPromo();
         }
-        document.getElementById("mem-check") &&
-          (document.getElementById("mem-check").checked = state.isMember);
+        if (memCheck) {
+          memCheck.checked = state.isMember;
+          memCheck.dataset.membershipBoundUser = authState.user?.id || "";
+        }
         document.getElementById("mem-saving") &&
           document
             .getElementById("mem-saving")
@@ -1674,16 +1735,33 @@
         const memCheck = document.getElementById("mem-check");
         const memType = document.getElementById("f-membership");
         const membershipType = authState.user?.membershipType || "";
+        const userId = authState.user?.id || "";
 
         if (!memType || !memCheck) {
           return;
         }
 
+        if (!membershipType) {
+          memType.value = "";
+          memType.disabled = true;
+          memCheck.disabled = true;
+          memCheck.checked = false;
+          memCheck.dataset.membershipBoundUser = "";
+          state.isMember = false;
+          return;
+        }
+
         memType.value = membershipType;
         memType.disabled = true;
-        memCheck.disabled = !membershipType;
-        memCheck.checked = Boolean(membershipType);
-        state.isMember = Boolean(membershipType);
+        memCheck.disabled = false;
+
+        const isSameUser = memCheck.dataset.membershipBoundUser === userId;
+        if (!isSameUser) {
+          state.isMember = true;
+          memCheck.dataset.membershipBoundUser = userId;
+        }
+
+        memCheck.checked = Boolean(state.isMember);
       }
 
       function setMembershipEnabled(enabled) {
@@ -1704,6 +1782,7 @@
           state.isMember = false;
           if (memCheck) {
             memCheck.checked = false;
+            memCheck.dataset.membershipBoundUser = "";
           }
         } else {
           applyStoredMembershipState();
@@ -1777,14 +1856,21 @@
       function switchAuthTab(tab) {
         const loginForm = document.getElementById("loginForm");
         const signupForm = document.getElementById("signupForm");
+        const forgotForm = document.getElementById("forgotForm");
+        const resetForm = document.getElementById("resetForm");
         const loginTabBtn = document.getElementById("loginTabBtn");
         const signupTabBtn = document.getElementById("signupTabBtn");
 
         const showLogin = tab === "login";
+        const showSignup = tab === "signup";
+        const showForgot = tab === "forgot";
+        const showReset = tab === "reset";
         loginForm.classList.toggle("hidden", !showLogin);
-        signupForm.classList.toggle("hidden", showLogin);
+        signupForm.classList.toggle("hidden", !showSignup);
+        forgotForm.classList.toggle("hidden", !showForgot);
+        resetForm.classList.toggle("hidden", !showReset);
         loginTabBtn.classList.toggle("active", showLogin);
-        signupTabBtn.classList.toggle("active", !showLogin);
+        signupTabBtn.classList.toggle("active", showSignup);
         setAuthMessage("", "");
       }
 
@@ -1876,6 +1962,104 @@
         } catch (err) {
           setAuthMessage("error", err.message || "Authentication failed.");
         }
+      }
+
+      async function requestPasswordReset() {
+        const email = document.getElementById("forgotEmail").value.trim();
+        try {
+          setAuthMessage("", "");
+          const res = await fetch("/forgot-password", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email }),
+          });
+          const data = await readJsonResponse(res);
+          if (!res.ok) {
+            throw new Error(data?.error || "Could not process password reset.");
+          }
+
+          if (data?.devResetToken) {
+            const tokenInput = document.getElementById("resetToken");
+            if (tokenInput) {
+              tokenInput.value = String(data.devResetToken);
+            }
+            switchAuthTab("reset");
+            setAuthMessage(
+              "success",
+              "Reset token generated for development. Paste token and set a new password.",
+            );
+            return;
+          }
+
+          switchAuthTab("login");
+          setAuthMessage(
+            "success",
+            data?.message ||
+              "If that email exists, a password reset link has been generated.",
+          );
+        } catch (err) {
+          setAuthMessage(
+            "error",
+            err.message || "Could not process password reset request.",
+          );
+        }
+      }
+
+      async function submitPasswordReset() {
+        const token = document.getElementById("resetToken").value.trim();
+        const password = document.getElementById("resetPassword").value;
+        const confirmPassword = document.getElementById(
+          "resetPasswordConfirm",
+        ).value;
+
+        if (password !== confirmPassword) {
+          setAuthMessage("error", "Passwords do not match.");
+          return;
+        }
+
+        try {
+          setAuthMessage("", "");
+          const res = await fetch("/reset-password", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ token, password }),
+          });
+          const data = await readJsonResponse(res);
+          if (!res.ok) {
+            throw new Error(data?.error || "Could not reset password.");
+          }
+
+          document.getElementById("resetPassword").value = "";
+          document.getElementById("resetPasswordConfirm").value = "";
+          switchAuthTab("login");
+          setAuthMessage(
+            "success",
+            data?.message || "Password updated successfully. Please log in.",
+          );
+        } catch (err) {
+          setAuthMessage("error", err.message || "Could not reset password.");
+        }
+      }
+
+      function applyAuthResetFromQuery() {
+        const params = new URLSearchParams(window.location.search);
+        const authView = String(params.get("auth") || "")
+          .trim()
+          .toLowerCase();
+        const resetToken = String(params.get("reset_token") || "").trim();
+
+        if (!resetToken && authView !== "reset") {
+          return;
+        }
+
+        if (resetToken) {
+          const tokenInput = document.getElementById("resetToken");
+          if (tokenInput) {
+            tokenInput.value = resetToken;
+          }
+        }
+
+        openAuthModal("reset");
       }
 
       async function logoutUser() {
@@ -2365,6 +2549,15 @@
       document
         .getElementById("signupTabBtn")
         .addEventListener("click", () => switchAuthTab("signup"));
+      document
+        .getElementById("forgotPasswordBtn")
+        .addEventListener("click", () => switchAuthTab("forgot"));
+      document
+        .getElementById("backToLoginBtn")
+        .addEventListener("click", () => switchAuthTab("login"));
+      document
+        .getElementById("backToLoginFromResetBtn")
+        .addEventListener("click", () => switchAuthTab("login"));
 
       document
         .getElementById("authModal")
@@ -2405,6 +2598,20 @@
           );
         });
 
+      document
+        .getElementById("forgotForm")
+        .addEventListener("submit", async (event) => {
+          event.preventDefault();
+          await requestPasswordReset();
+        });
+
+      document
+        .getElementById("resetForm")
+        .addEventListener("submit", async (event) => {
+          event.preventDefault();
+          await submitPasswordReset();
+        });
+
       //
       //  INIT
       //
@@ -2414,6 +2621,7 @@
       renderAuthState();
       fetchCurrentUser();
       handleCheckoutReturn();
+      applyAuthResetFromQuery();
     </script>
   </body>
 </html>
