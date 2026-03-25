@@ -66,6 +66,9 @@ const SMTP_USER = String(process.env.SMTP_USER || "").trim();
 const SMTP_PASS = String(process.env.SMTP_PASS || "");
 const SMTP_FROM = String(process.env.SMTP_FROM || SMTP_USER || "").trim();
 const SMTP_REPLY_TO = String(process.env.SMTP_REPLY_TO || "").trim();
+const CONTACT_FORM_TO = String(
+  process.env.CONTACT_FORM_TO || "info@smashforcebaminton.com",
+).trim();
 const USERS_FILE =
   process.env.USERS_FILE || path.join(__dirname, "data", "users.json");
 const DB_FILE =
@@ -135,6 +138,59 @@ async function sendPasswordResetEmail({ toEmail, toName, resetLink }) {
     return true;
   } catch (err) {
     console.error("Password reset mail error:", err.message);
+    return false;
+  }
+}
+
+function escapeHtml(value) {
+  return String(value || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/\"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+async function sendContactFormEmail({ name, email, phone, topic, message }) {
+  const transporter = getMailerTransport();
+  if (!transporter) {
+    return false;
+  }
+
+  const safeName =
+    String(name || "Website Visitor").trim() || "Website Visitor";
+  const safeEmail = String(email || "").trim();
+  const safePhone = String(phone || "").trim();
+  const safeTopic =
+    String(topic || "General Enquiry").trim() || "General Enquiry";
+  const safeMessage = String(message || "").trim();
+
+  const mailOptions = {
+    from: SMTP_FROM,
+    to: CONTACT_FORM_TO,
+    subject: `Website Contact: ${safeTopic}`,
+    text: [
+      `Name: ${safeName}`,
+      `Email: ${safeEmail || "Not provided"}`,
+      `Phone: ${safePhone || "Not provided"}`,
+      "",
+      "Message:",
+      safeMessage,
+    ].join("\n"),
+    html: `<p><strong>Name:</strong> ${escapeHtml(safeName)}</p><p><strong>Email:</strong> ${escapeHtml(safeEmail || "Not provided")}</p><p><strong>Phone:</strong> ${escapeHtml(safePhone || "Not provided")}</p><p><strong>Topic:</strong> ${escapeHtml(safeTopic)}</p><p><strong>Message:</strong></p><p>${escapeHtml(safeMessage).replace(/\n/g, "<br>")}</p>`,
+  };
+
+  if (safeEmail) {
+    mailOptions.replyTo = safeEmail;
+  } else if (SMTP_REPLY_TO) {
+    mailOptions.replyTo = SMTP_REPLY_TO;
+  }
+
+  try {
+    await transporter.sendMail(mailOptions);
+    return true;
+  } catch (err) {
+    console.error("Contact form mail error:", err.message);
     return false;
   }
 }
@@ -499,6 +555,12 @@ const forgotPasswordRateLimit = createRateLimiter({
 
 const resetPasswordRateLimit = createRateLimiter({
   keyPrefix: "reset-password",
+  maxRequests: 12,
+  windowMs: 10 * 60 * 1000,
+});
+
+const contactMessageRateLimit = createRateLimiter({
+  keyPrefix: "contact-message",
   maxRequests: 12,
   windowMs: 10 * 60 * 1000,
 });
@@ -1908,6 +1970,68 @@ app.post("/reset-password", resetPasswordRateLimit, async (req, res) => {
   }
 });
 
+app.post("/contact-message", contactMessageRateLimit, async (req, res) => {
+  try {
+    const firstName = String(req.body?.firstName || "").trim();
+    const lastName = String(req.body?.lastName || "").trim();
+    const email = String(req.body?.email || "")
+      .trim()
+      .toLowerCase();
+    const phone = String(req.body?.phone || "").trim();
+    const topic =
+      String(req.body?.topic || "General Enquiry").trim() || "General Enquiry";
+    const message = String(req.body?.message || "").trim();
+
+    if (!message) {
+      return res.status(400).json({ error: "Message is required." });
+    }
+
+    if (message.length > 5000) {
+      return res.status(400).json({
+        error: "Message is too long. Please keep it under 5000 characters.",
+      });
+    }
+
+    if (email && !isValidEmail(email)) {
+      return res
+        .status(400)
+        .json({ error: "Please enter a valid email address." });
+    }
+
+    if (!CONTACT_FORM_TO) {
+      console.warn(
+        "CONTACT_FORM_TO is empty. Contact form email was not sent.",
+      );
+      return res.status(503).json({
+        error:
+          "Contact email destination is not configured yet. Please try again later.",
+      });
+    }
+
+    const sent = await sendContactFormEmail({
+      name: `${firstName} ${lastName}`.trim() || "Website Visitor",
+      email,
+      phone,
+      topic,
+      message,
+    });
+
+    if (!sent) {
+      return res.status(503).json({
+        error:
+          "Unable to send your message right now. Please try again shortly.",
+      });
+    }
+
+    return res.json({ ok: true, message: "Message sent successfully." });
+  } catch (err) {
+    console.error("Contact message error:", err.message);
+    return res.status(500).json({
+      error: "Unable to send your message right now. Please try again shortly.",
+    });
+  }
+});
+
 app.post("/logout", requireSameOrigin, async (req, res) => {
   const token = getSessionToken(req);
   if (token) {
@@ -2664,7 +2788,7 @@ async function startServer(port = Number(process.env.PORT) || 3000) {
     await initDatabase();
     if (!isSmtpConfigured()) {
       console.warn(
-        "SMTP is not configured. Forgot-password emails will not be delivered.",
+        "SMTP is not configured. Forgot-password and contact-form emails will not be delivered.",
       );
     }
     await maybeMigrateLegacyUsers();

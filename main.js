@@ -40,19 +40,35 @@ function setAuthMessage(type, message) {
   success.textContent = type === "success" ? message : "";
 }
 
-function toggleAuthView(isLogin) {
+function switchAuthTab(tab) {
   const loginForm = document.getElementById("loginForm");
   const signupForm = document.getElementById("signupForm");
+  const forgotForm = document.getElementById("forgotForm");
+  const resetForm = document.getElementById("resetForm");
   const loginTabBtn = document.getElementById("loginTabBtn");
   const signupTabBtn = document.getElementById("signupTabBtn");
-  if (!loginForm || !signupForm || !loginTabBtn || !signupTabBtn) {
+  if (
+    !loginForm ||
+    !signupForm ||
+    !forgotForm ||
+    !resetForm ||
+    !loginTabBtn ||
+    !signupTabBtn
+  ) {
     return;
   }
 
-  loginForm.classList.toggle("hidden-auth-link", !isLogin);
-  signupForm.classList.toggle("hidden-auth-link", isLogin);
-  loginTabBtn.classList.toggle("active", isLogin);
-  signupTabBtn.classList.toggle("active", !isLogin);
+  const showLogin = tab === "login";
+  const showSignup = tab === "signup";
+  const showForgot = tab === "forgot";
+  const showReset = tab === "reset";
+
+  loginForm.classList.toggle("hidden-auth-link", !showLogin);
+  signupForm.classList.toggle("hidden-auth-link", !showSignup);
+  forgotForm.classList.toggle("hidden-auth-link", !showForgot);
+  resetForm.classList.toggle("hidden-auth-link", !showReset);
+  loginTabBtn.classList.toggle("active", showLogin);
+  signupTabBtn.classList.toggle("active", showSignup);
   setAuthMessage("", "");
 }
 
@@ -63,7 +79,7 @@ function openAuthModal(tab = "login") {
   }
   modal.classList.remove("hidden-auth-link");
   modal.setAttribute("aria-hidden", "false");
-  toggleAuthView(tab === "login");
+  switchAuthTab(tab);
 }
 
 function closeAuthModal() {
@@ -168,6 +184,112 @@ async function submitAuth(
   }
 }
 
+async function requestPasswordReset() {
+  const email = document.getElementById("forgotEmail")?.value.trim() || "";
+  try {
+    setAuthMessage("", "");
+    const res = await fetch("/forgot-password", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email }),
+    });
+    const data = await readJsonResponse(res);
+    if (!res.ok) {
+      throw new Error(data?.error || "Could not process password reset.");
+    }
+
+    if (data?.devResetToken) {
+      const tokenInput = document.getElementById("resetToken");
+      if (tokenInput) {
+        tokenInput.value = String(data.devResetToken);
+      }
+      switchAuthTab("reset");
+      setAuthMessage(
+        "success",
+        "Reset token generated for development. Paste token and set a new password.",
+      );
+      return;
+    }
+
+    switchAuthTab("login");
+    setAuthMessage(
+      "success",
+      data?.message ||
+        "If that email exists, a password reset link has been generated.",
+    );
+  } catch (err) {
+    setAuthMessage(
+      "error",
+      err.message || "Could not process password reset request.",
+    );
+  }
+}
+
+async function submitPasswordReset() {
+  const token = document.getElementById("resetToken")?.value.trim() || "";
+  const password = document.getElementById("resetPassword")?.value || "";
+  const confirmPassword =
+    document.getElementById("resetPasswordConfirm")?.value || "";
+
+  if (password !== confirmPassword) {
+    setAuthMessage("error", "Passwords do not match.");
+    return;
+  }
+
+  try {
+    setAuthMessage("", "");
+    const res = await fetch("/reset-password", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token, password }),
+    });
+    const data = await readJsonResponse(res);
+    if (!res.ok) {
+      throw new Error(data?.error || "Could not reset password.");
+    }
+
+    const resetPasswordInput = document.getElementById("resetPassword");
+    const resetPasswordConfirmInput = document.getElementById(
+      "resetPasswordConfirm",
+    );
+    if (resetPasswordInput) {
+      resetPasswordInput.value = "";
+    }
+    if (resetPasswordConfirmInput) {
+      resetPasswordConfirmInput.value = "";
+    }
+
+    switchAuthTab("login");
+    setAuthMessage(
+      "success",
+      data?.message || "Password updated successfully. Please log in.",
+    );
+  } catch (err) {
+    setAuthMessage("error", err.message || "Could not reset password.");
+  }
+}
+
+function applyAuthResetFromQuery() {
+  const params = new URLSearchParams(window.location.search);
+  const authView = String(params.get("auth") || "")
+    .trim()
+    .toLowerCase();
+  const resetToken = String(params.get("reset_token") || "").trim();
+
+  if (!resetToken && authView !== "reset") {
+    return;
+  }
+
+  if (resetToken) {
+    const tokenInput = document.getElementById("resetToken");
+    if (tokenInput) {
+      tokenInput.value = resetToken;
+    }
+  }
+
+  openAuthModal("reset");
+}
+
 async function logoutUser() {
   try {
     await fetch("/logout", { method: "POST" });
@@ -203,8 +325,7 @@ function showToast(msg) {
   setTimeout(() => t.classList.remove("show"), 3500);
 }
 
-function sendContactMessage() {
-  const to = "info@smashforcebaminton.com";
+async function sendContactMessage() {
   const firstName =
     document.getElementById("contactFirstName")?.value.trim() || "";
   const lastName =
@@ -222,20 +343,44 @@ function sendContactMessage() {
     return;
   }
 
-  const fullName = `${firstName} ${lastName}`.trim() || "Website Visitor";
-  const subject = `Website Contact: ${topic}`;
-  const bodyLines = [
-    `Name: ${fullName}`,
-    `Email: ${fromEmail || "Not provided"}`,
-    `Phone: ${phone || "Not provided"}`,
-    "",
-    "Message:",
-    message,
-  ];
+  try {
+    const response = await fetch("/contact-message", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        firstName,
+        lastName,
+        email: fromEmail,
+        phone,
+        topic,
+        message,
+      }),
+    });
 
-  const mailto = `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(bodyLines.join("\n"))}`;
-  window.location.href = mailto;
-  showToast("Opening your email app...");
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      showToast(payload.error || "Unable to send message right now.");
+      return;
+    }
+
+    showToast("Message sent successfully.");
+    const fieldIds = [
+      "contactFirstName",
+      "contactLastName",
+      "contactEmailInput",
+      "contactPhoneInput",
+      "contactTopic",
+      "contactMessage",
+    ];
+    fieldIds.forEach((id) => {
+      const field = document.getElementById(id);
+      if (field) {
+        field.value = "";
+      }
+    });
+  } catch {
+    showToast("Unable to send message right now.");
+  }
 }
 
 // ── Nav Highlight on Scroll ──
@@ -372,11 +517,22 @@ document
   .getElementById("authCloseBtn")
   ?.addEventListener("click", closeAuthModal);
 document.getElementById("loginTabBtn")?.addEventListener("click", () => {
-  toggleAuthView(true);
+  switchAuthTab("login");
 });
 document.getElementById("signupTabBtn")?.addEventListener("click", () => {
-  toggleAuthView(false);
+  switchAuthTab("signup");
 });
+document.getElementById("forgotPasswordBtn")?.addEventListener("click", () => {
+  switchAuthTab("forgot");
+});
+document.getElementById("backToLoginBtn")?.addEventListener("click", () => {
+  switchAuthTab("login");
+});
+document
+  .getElementById("backToLoginFromResetBtn")
+  ?.addEventListener("click", () => {
+    switchAuthTab("login");
+  });
 document.getElementById("authLogoutBtn")?.addEventListener("click", logoutUser);
 document
   .getElementById("mobAuthLogoutBtn")
@@ -455,7 +611,22 @@ document
     }
   });
 
+document
+  .getElementById("forgotForm")
+  ?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    await requestPasswordReset();
+  });
+
+document
+  .getElementById("resetForm")
+  ?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    await submitPasswordReset();
+  });
+
 fetchCurrentUser();
+applyAuthResetFromQuery();
 
 // Membership CTAs open the auth modal (login tab) for both buttons.
 document.querySelectorAll("#membership .btn-m").forEach((btn) => {

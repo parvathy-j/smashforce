@@ -400,6 +400,28 @@ nav {
   border: none;
   margin-top: 10px;
 }
+.auth-links-row {
+  display: flex;
+  justify-content: flex-start;
+}
+.auth-link-btn {
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: var(--secondary-dim);
+  cursor: pointer;
+  font-family: "Outfit", sans-serif;
+  font-size: 0.83rem;
+  font-weight: 600;
+  padding: 0;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+.auth-link-btn:hover,
+.auth-link-btn:focus-visible {
+  color: var(--white);
+}
 .auth-error,
 .auth-success {
   min-height: 22px;
@@ -442,8 +464,7 @@ nav {
       rgba(var(--secondary-rgb), 0.1) 0%,
       transparent 60%
     ),
-    url("standard-court.png") center center / cover
-      no-repeat,
+    url("standard-court.png") center center / cover no-repeat,
     var(--navy);
   filter: saturate(0.92) contrast(1.02);
   transform: translate3d(0, 0, 0) scale(1.08);

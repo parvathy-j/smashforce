@@ -117,7 +117,68 @@
             minlength="8"
             placeholder="Enter your password"
           />
+          <div class="auth-links-row">
+            <button class="auth-link-btn" id="forgotPasswordBtn" type="button">
+              Forgot password?
+            </button>
+          </div>
           <button class="btn-lime auth-submit" type="submit">Login</button>
+        </form>
+
+        <form id="forgotForm" class="auth-form hidden-auth-link">
+          <label for="forgotEmail">Email</label>
+          <input
+            id="forgotEmail"
+            type="email"
+            required
+            placeholder="you@email.com"
+          />
+          <button class="btn-lime auth-submit" type="submit">
+            Send Reset Link
+          </button>
+          <div class="auth-links-row">
+            <button class="auth-link-btn" id="backToLoginBtn" type="button">
+              Back to login
+            </button>
+          </div>
+        </form>
+
+        <form id="resetForm" class="auth-form hidden-auth-link">
+          <label for="resetToken">Reset Token</label>
+          <input
+            id="resetToken"
+            type="text"
+            required
+            placeholder="Paste token from email link"
+          />
+          <label for="resetPassword">New Password</label>
+          <input
+            id="resetPassword"
+            type="password"
+            required
+            minlength="8"
+            placeholder="Enter new password"
+          />
+          <label for="resetPasswordConfirm">Confirm New Password</label>
+          <input
+            id="resetPasswordConfirm"
+            type="password"
+            required
+            minlength="8"
+            placeholder="Confirm new password"
+          />
+          <button class="btn-lime auth-submit" type="submit">
+            Reset Password
+          </button>
+          <div class="auth-links-row">
+            <button
+              class="auth-link-btn"
+              id="backToLoginFromResetBtn"
+              type="button"
+            >
+              Back to login
+            </button>
+          </div>
         </form>
 
         <form id="signupForm" class="auth-form hidden-auth-link">
