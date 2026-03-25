@@ -5,6 +5,7 @@ require("dotenv").config();
 const express = require("express");
 const helmet = require("helmet");
 const Stripe = require("stripe");
+const nodemailer = require("nodemailer");
 const crypto = require("crypto");
 const fs = require("fs/promises");
 const path = require("path");
@@ -48,6 +49,23 @@ const SESSION_COOKIE_DOMAIN = String(
   process.env.SESSION_COOKIE_DOMAIN || "",
 ).trim();
 const SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+const PASSWORD_RESET_TTL_MS = 60 * 60 * 1000;
+const PASSWORD_RESET_DEV_EXPOSE_TOKEN =
+  process.env.PASSWORD_RESET_DEV_EXPOSE_TOKEN === "1" || !IS_PRODUCTION;
+const PASSWORD_RESET_BASE_URL = String(
+  process.env.PASSWORD_RESET_BASE_URL || APP_URL,
+).trim();
+const SMTP_HOST = String(process.env.SMTP_HOST || "").trim();
+const SMTP_PORT = Number(process.env.SMTP_PORT || 587);
+const SMTP_SECURE =
+  String(process.env.SMTP_SECURE || "").trim() === "1" ||
+  String(process.env.SMTP_SECURE || "")
+    .trim()
+    .toLowerCase() === "true";
+const SMTP_USER = String(process.env.SMTP_USER || "").trim();
+const SMTP_PASS = String(process.env.SMTP_PASS || "");
+const SMTP_FROM = String(process.env.SMTP_FROM || SMTP_USER || "").trim();
+const SMTP_REPLY_TO = String(process.env.SMTP_REPLY_TO || "").trim();
 const USERS_FILE =
   process.env.USERS_FILE || path.join(__dirname, "data", "users.json");
 const DB_FILE =
@@ -60,7 +78,66 @@ let pgPool = null;
 let mysqlPool = null;
 let sqlite3 = null;
 let mysql = null;
+let mailerTransport = null;
 const rateLimitBuckets = new Map();
+
+function isSmtpConfigured() {
+  return Boolean(SMTP_HOST && Number.isFinite(SMTP_PORT) && SMTP_FROM);
+}
+
+function getMailerTransport() {
+  if (!isSmtpConfigured()) {
+    return null;
+  }
+
+  if (mailerTransport) {
+    return mailerTransport;
+  }
+
+  const transportConfig = {
+    host: SMTP_HOST,
+    port: SMTP_PORT,
+    secure: SMTP_SECURE,
+  };
+
+  if (SMTP_USER && SMTP_PASS) {
+    transportConfig.auth = {
+      user: SMTP_USER,
+      pass: SMTP_PASS,
+    };
+  }
+
+  mailerTransport = nodemailer.createTransport(transportConfig);
+  return mailerTransport;
+}
+
+async function sendPasswordResetEmail({ toEmail, toName, resetLink }) {
+  const transporter = getMailerTransport();
+  if (!transporter) {
+    return false;
+  }
+
+  const safeName = String(toName || "there").trim() || "there";
+  const mailOptions = {
+    from: SMTP_FROM,
+    to: toEmail,
+    subject: "Reset your Smashforce password",
+    text: `Hi ${safeName},\n\nWe received a request to reset your Smashforce password.\n\nUse this link to reset it (valid for 1 hour):\n${resetLink}\n\nIf you did not request this, you can ignore this email.`,
+    html: `<p>Hi ${safeName},</p><p>We received a request to reset your Smashforce password.</p><p><a href="${resetLink}">Reset your password</a> (valid for 1 hour)</p><p>If you did not request this, you can ignore this email.</p>`,
+  };
+
+  if (SMTP_REPLY_TO) {
+    mailOptions.replyTo = SMTP_REPLY_TO;
+  }
+
+  try {
+    await transporter.sendMail(mailOptions);
+    return true;
+  } catch (err) {
+    console.error("Password reset mail error:", err.message);
+    return false;
+  }
+}
 
 function isPostgresProvider() {
   return DB_PROVIDER === "postgres" || DB_PROVIDER === "postgresql";
@@ -255,15 +332,15 @@ const SITE_CONTENT_DEFAULTS = {
   logoTagline: "Experience the Power of the Smash.",
   heroAnnouncement: "Now accepting bookings",
   heroDescription:
-    "9 professional badminton courts, 5 multi-game tables, and elite facilities — open mornings and evenings for players of every level.",
+    "9 professional badminton courts, 5 multi-game tables, and elite facilities, open mornings and evenings for players of every level.",
   standardCourtPrice: "$25",
   singleCourtPrice: "$15",
   tablePrice: "$15/hr",
   courtMembershipPrice: "$49",
   allAccessMembershipPrice: "$79",
   bookingCta: "🏸 Book Your Court Now",
-  contactLocation: "Your Full Address · City",
-  contactPhone: "+1 (000) 000-0000",
+  contactLocation: "4 Simpson St, Moorabbin VIC 3189",
+  contactPhone: "+61 370 447 733",
   contactEmail: "info@smashforceacademy.com",
   contactHours: "Morning 6–9 AM · Evening 5–11 PM",
   floatingButtonText: "🏸Book Now!",
@@ -411,6 +488,18 @@ const signupRateLimit = createRateLimiter({
 const loginRateLimit = createRateLimiter({
   keyPrefix: "login",
   maxRequests: 15,
+  windowMs: 10 * 60 * 1000,
+});
+
+const forgotPasswordRateLimit = createRateLimiter({
+  keyPrefix: "forgot-password",
+  maxRequests: 8,
+  windowMs: 10 * 60 * 1000,
+});
+
+const resetPasswordRateLimit = createRateLimiter({
+  keyPrefix: "reset-password",
+  maxRequests: 12,
   windowMs: 10 * 60 * 1000,
 });
 
@@ -906,6 +995,85 @@ async function cleanupExpiredSessions() {
   await dbRun("DELETE FROM sessions WHERE expires_at <= ?", [Date.now()]);
 }
 
+async function cleanupExpiredPasswordResets() {
+  await dbRun("DELETE FROM password_resets WHERE expires_at <= ?", [
+    Date.now(),
+  ]);
+}
+
+function hashResetToken(token) {
+  return crypto
+    .createHash("sha256")
+    .update(String(token || ""))
+    .digest("hex");
+}
+
+function buildPasswordResetLink(token) {
+  const fallback = new URL(APP_ORIGIN);
+  let baseUrl = null;
+
+  try {
+    const hasScheme = PASSWORD_RESET_BASE_URL.includes("://");
+    baseUrl = new URL(
+      hasScheme
+        ? PASSWORD_RESET_BASE_URL
+        : `https://${PASSWORD_RESET_BASE_URL}`,
+    );
+  } catch {
+    baseUrl = fallback;
+  }
+
+  if (!baseUrl.pathname || baseUrl.pathname === "/") {
+    baseUrl.pathname = "/booking.html";
+  }
+
+  baseUrl.searchParams.set("auth", "reset");
+  baseUrl.searchParams.set("reset_token", token);
+  return baseUrl.toString();
+}
+
+async function createPasswordResetToken(userId) {
+  const now = Date.now();
+  const token = crypto.randomBytes(32).toString("hex");
+  const tokenHash = hashResetToken(token);
+
+  await dbRun(
+    "DELETE FROM password_resets WHERE user_id = ? OR expires_at <= ? OR used_at IS NOT NULL",
+    [userId, now],
+  );
+
+  await dbRun(
+    "INSERT INTO password_resets (id, user_id, token_hash, expires_at, created_at) VALUES (?, ?, ?, ?, ?)",
+    [crypto.randomUUID(), userId, tokenHash, now + PASSWORD_RESET_TTL_MS, now],
+  );
+
+  return token;
+}
+
+async function findActivePasswordResetByToken(rawToken) {
+  const token = String(rawToken || "").trim();
+  if (!token) {
+    return null;
+  }
+
+  const tokenHash = hashResetToken(token);
+  const row = await dbGet(
+    "SELECT id, user_id AS userId, expires_at AS expiresAt, used_at AS usedAt FROM password_resets WHERE token_hash = ? LIMIT 1",
+    [tokenHash],
+  );
+
+  if (!row || row.usedAt) {
+    return null;
+  }
+
+  if (Number(row.expiresAt || 0) <= Date.now()) {
+    await dbRun("DELETE FROM password_resets WHERE id = ?", [row.id]);
+    return null;
+  }
+
+  return row;
+}
+
 async function readUsers() {
   return dbAll(
     "SELECT id, name, email, membership_type AS membershipType, is_admin AS isAdmin, password_hash AS passwordHash, created_at AS createdAt FROM users ORDER BY created_at ASC",
@@ -1013,6 +1181,25 @@ async function initSqliteDatabase() {
   );
 
   await dbRun(`
+    CREATE TABLE IF NOT EXISTS password_resets (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      token_hash TEXT NOT NULL UNIQUE,
+      expires_at INTEGER NOT NULL,
+      used_at INTEGER,
+      created_at INTEGER NOT NULL,
+      FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+    )
+  `);
+
+  await dbRun(
+    "CREATE INDEX IF NOT EXISTS idx_password_resets_user_id ON password_resets (user_id)",
+  );
+  await dbRun(
+    "CREATE INDEX IF NOT EXISTS idx_password_resets_expires_at ON password_resets (expires_at)",
+  );
+
+  await dbRun(`
     CREATE TABLE IF NOT EXISTS bookings (
       id TEXT PRIMARY KEY,
       user_id TEXT,
@@ -1072,6 +1259,7 @@ async function initSqliteDatabase() {
   }
 
   await cleanupExpiredSessions();
+  await cleanupExpiredPasswordResets();
 }
 
 async function initPostgresDatabase() {
@@ -1106,6 +1294,23 @@ async function initPostgresDatabase() {
   );
   await dbRun(
     "CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON sessions (user_id)",
+  );
+
+  await dbRun(`
+    CREATE TABLE IF NOT EXISTS password_resets (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      token_hash TEXT NOT NULL UNIQUE,
+      expires_at BIGINT NOT NULL,
+      used_at BIGINT,
+      created_at BIGINT NOT NULL
+    )
+  `);
+  await dbRun(
+    "CREATE INDEX IF NOT EXISTS idx_password_resets_user_id ON password_resets (user_id)",
+  );
+  await dbRun(
+    "CREATE INDEX IF NOT EXISTS idx_password_resets_expires_at ON password_resets (expires_at)",
   );
 
   await dbRun(`
@@ -1166,6 +1371,7 @@ async function initPostgresDatabase() {
   }
 
   await cleanupExpiredSessions();
+  await cleanupExpiredPasswordResets();
 }
 
 async function initMysqlDatabase() {
@@ -1222,6 +1428,20 @@ async function initMysqlDatabase() {
   `);
 
   await dbRun(`
+    CREATE TABLE IF NOT EXISTS password_resets (
+      id VARCHAR(191) PRIMARY KEY,
+      user_id VARCHAR(191) NOT NULL,
+      token_hash VARCHAR(64) NOT NULL UNIQUE,
+      expires_at BIGINT NOT NULL,
+      used_at BIGINT NULL,
+      created_at BIGINT NOT NULL,
+      INDEX idx_password_resets_user_id (user_id),
+      INDEX idx_password_resets_expires_at (expires_at),
+      CONSTRAINT fk_password_resets_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    )
+  `);
+
+  await dbRun(`
     CREATE TABLE IF NOT EXISTS bookings (
       id VARCHAR(191) PRIMARY KEY,
       user_id VARCHAR(191) NULL,
@@ -1274,6 +1494,7 @@ async function initMysqlDatabase() {
   }
 
   await cleanupExpiredSessions();
+  await cleanupExpiredPasswordResets();
 }
 
 async function initDatabase() {
@@ -1591,6 +1812,102 @@ app.post("/login", loginRateLimit, async (req, res) => {
   }
 });
 
+app.post("/forgot-password", forgotPasswordRateLimit, async (req, res) => {
+  const genericMessage =
+    "If that email exists, a password reset link has been generated.";
+
+  try {
+    const email = String(req.body?.email || "")
+      .trim()
+      .toLowerCase();
+
+    if (!isValidEmail(email)) {
+      return res.status(400).json({ error: "Valid email is required." });
+    }
+
+    const user = await findUserByEmail(email);
+    if (!user) {
+      return res.json({ ok: true, message: genericMessage });
+    }
+
+    const resetToken = await createPasswordResetToken(user.id);
+    const resetLink = buildPasswordResetLink(resetToken);
+    const sent = await sendPasswordResetEmail({
+      toEmail: user.email,
+      toName: user.name,
+      resetLink,
+    });
+
+    if (!sent) {
+      console.warn(
+        `Password reset email was not sent for ${email}. Check SMTP settings.`,
+      );
+      console.info(`Password reset link for ${email}: ${resetLink}`);
+    }
+
+    const payload = { ok: true, message: genericMessage };
+    if (PASSWORD_RESET_DEV_EXPOSE_TOKEN) {
+      payload.devResetLink = resetLink;
+      payload.devResetToken = resetToken;
+    }
+
+    return res.json(payload);
+  } catch (err) {
+    console.error("Forgot password error:", err.message);
+    return res.status(500).json({
+      error:
+        "Password reset request failed: Unable to generate a reset link right now. Please try again.",
+    });
+  }
+});
+
+app.post("/reset-password", resetPasswordRateLimit, async (req, res) => {
+  try {
+    const token = String(req.body?.token || "").trim();
+    const password = String(req.body?.password || "");
+
+    if (!token) {
+      return res.status(400).json({ error: "Reset token is required." });
+    }
+
+    if (password.length < 8) {
+      return res
+        .status(400)
+        .json({ error: "Password must be at least 8 characters long." });
+    }
+
+    const resetRow = await findActivePasswordResetByToken(token);
+    if (!resetRow) {
+      return res
+        .status(400)
+        .json({ error: "Reset token is invalid or has expired." });
+    }
+
+    await dbRun("UPDATE users SET password_hash = ? WHERE id = ?", [
+      hashPassword(password),
+      resetRow.userId,
+    ]);
+
+    await dbRun("UPDATE password_resets SET used_at = ? WHERE id = ?", [
+      Date.now(),
+      resetRow.id,
+    ]);
+    await dbRun("DELETE FROM password_resets WHERE user_id = ?", [
+      resetRow.userId,
+    ]);
+    await dbRun("DELETE FROM sessions WHERE user_id = ?", [resetRow.userId]);
+
+    res.setHeader("Set-Cookie", buildClearedSessionCookie());
+    return res.json({ ok: true, message: "Password updated successfully." });
+  } catch (err) {
+    console.error("Reset password error:", err.message);
+    return res.status(500).json({
+      error:
+        "Password reset failed: Unable to update your password right now. Please try again.",
+    });
+  }
+});
+
 app.post("/logout", requireSameOrigin, async (req, res) => {
   const token = getSessionToken(req);
   if (token) {
@@ -1787,6 +2104,38 @@ app.post(
       user.id,
     ]);
     return res.json({ ok: true, message: `${email} is now an admin.` });
+  },
+);
+
+// Force-sync CMS content to the values defined in SITE_CONTENT_DEFAULTS.
+// Useful when table data is stale and overriding correct homepage copy.
+app.post(
+  "/admin/sync-site-content",
+  createRateLimiter({
+    keyPrefix: "sync-site-content",
+    maxRequests: 10,
+    windowMs: 10 * 60 * 1000,
+  }),
+  async (req, res) => {
+    const adminSecret = process.env.ADMIN_SECRET;
+    if (!adminSecret) {
+      return res.status(503).json({ error: "ADMIN_SECRET not configured." });
+    }
+
+    const authHeader = req.headers.authorization || "";
+    if (authHeader !== `Bearer ${adminSecret}`) {
+      return res.status(403).json({ error: "Invalid admin secret." });
+    }
+
+    try {
+      const content = await saveSiteContent(SITE_CONTENT_DEFAULTS);
+      return res.json({ ok: true, content });
+    } catch (err) {
+      console.error("Sync site content error:", err.message);
+      return res.status(500).json({
+        error: "Site content sync failed: Unable to update site_content table.",
+      });
+    }
   },
 );
 
@@ -2313,6 +2662,11 @@ app.post(
 async function startServer(port = Number(process.env.PORT) || 3000) {
   try {
     await initDatabase();
+    if (!isSmtpConfigured()) {
+      console.warn(
+        "SMTP is not configured. Forgot-password emails will not be delivered.",
+      );
+    }
     await maybeMigrateLegacyUsers();
 
     console.log(
