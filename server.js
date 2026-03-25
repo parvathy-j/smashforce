@@ -948,49 +948,83 @@ async function listBookings(filters = {}) {
       throw err;
     }
 
-    const fallbackRows = await dbAll(
-      `SELECT
-        b.id,
-        b.customer_name AS customerName,
-        b.customer_email AS customerEmail,
-        b.facility,
-        b.booking_date AS bookingDate,
-        b.booking_time AS bookingTime,
-        b.court,
-        b.amount,
-        b.currency,
-        b.payment_status AS paymentStatus,
-        b.created_at AS createdAt
-      FROM bookings b
-      ${whereClause}
-      ORDER BY b.created_at DESC
-      LIMIT ?`,
-      [...params, limit],
-    );
+    try {
+      const fallbackRows = await dbAll(
+        `SELECT
+          b.id,
+          b.customer_name AS customerName,
+          b.customer_email AS customerEmail,
+          b.facility,
+          b.booking_date AS bookingDate,
+          b.booking_time AS bookingTime,
+          b.court,
+          b.amount,
+          b.currency,
+          b.payment_status AS paymentStatus,
+          b.created_at AS createdAt
+        FROM bookings b
+        ${whereClause}
+        ORDER BY b.created_at DESC
+        LIMIT ?`,
+        [...params, limit],
+      );
 
-    return fallbackRows.map((row) => ({
-      id: row.id,
-      userId: null,
-      customerName: row.customerName,
-      customerEmail: row.customerEmail,
-      customerPhone: "",
-      facility: row.facility,
-      bookingDate: row.bookingDate,
-      bookingTime: row.bookingTime,
-      duration: "",
-      court: row.court,
-      membershipType: "",
-      appliedMembership: "none",
-      amount: row.amount,
-      currency: row.currency,
-      paymentStatus: row.paymentStatus,
-      checkoutSessionId: "",
-      paymentIntentId: "",
-      source: "",
-      createdAt: row.createdAt,
-      accountName: "",
-      accountEmail: "",
-    }));
+      return fallbackRows.map((row) => ({
+        id: row.id,
+        userId: null,
+        customerName: row.customerName,
+        customerEmail: row.customerEmail,
+        customerPhone: "",
+        facility: row.facility,
+        bookingDate: row.bookingDate,
+        bookingTime: row.bookingTime,
+        duration: "",
+        court: row.court,
+        membershipType: "",
+        appliedMembership: "none",
+        amount: row.amount,
+        currency: row.currency,
+        paymentStatus: row.paymentStatus,
+        checkoutSessionId: "",
+        paymentIntentId: "",
+        source: "",
+        createdAt: row.createdAt,
+        accountName: "",
+        accountEmail: "",
+      }));
+    } catch {
+      // Last-resort compatibility for older booking schemas.
+      const genericRows = await dbAll("SELECT * FROM bookings LIMIT ?", [
+        limit,
+      ]);
+      return genericRows.map((row) => ({
+        id: row.id || row.booking_id || "",
+        userId: row.user_id || row.userId || null,
+        customerName: row.customer_name || row.customerName || "",
+        customerEmail: row.customer_email || row.customerEmail || "",
+        customerPhone: row.customer_phone || row.customerPhone || "",
+        facility: row.facility || row.resource || "",
+        bookingDate: row.booking_date || row.bookingDate || row.date || "",
+        bookingTime: row.booking_time || row.bookingTime || row.time || "",
+        duration: row.duration || "",
+        court: row.court || row.court_no || row.courtNo || "",
+        membershipType: row.membership_type || row.membershipType || "",
+        appliedMembership:
+          row.applied_membership || row.appliedMembership || "none",
+        amount: Number(row.amount || 0),
+        currency: row.currency || "usd",
+        paymentStatus:
+          row.payment_status || row.paymentStatus || row.status || "pending",
+        checkoutSessionId:
+          row.checkout_session_id || row.checkoutSessionId || "",
+        paymentIntentId: row.payment_intent_id || row.paymentIntentId || "",
+        source: row.source || "",
+        createdAt:
+          row.created_at || row.createdAt || row.booking_date || row.date || "",
+        accountName: "",
+        accountEmail: "",
+      }));
+    }
   }
 }
 
