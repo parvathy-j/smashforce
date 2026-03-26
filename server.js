@@ -960,12 +960,11 @@ async function listBookings(filters = {}) {
   LEFT JOIN users u ON u.id = b.user_id
   ${whereClause}
   ORDER BY b.created_at DESC
-  LIMIT ?`;
-  const finalParams = [...params, limit];
+  LIMIT ${Number(limit) || 200}`;
   console.log("[listBookings] SQL:", sql);
-  console.log("[listBookings] Params:", finalParams);
+  console.log("[listBookings] Params:", params);
   try {
-    return await dbAll(sql, finalParams);
+    return await dbAll(sql, params);
   } catch (err) {
     const message = String(err?.message || "").toLowerCase();
     const isSchemaMismatch =
@@ -978,25 +977,23 @@ async function listBookings(filters = {}) {
     }
 
     try {
-      const fallbackRows = await dbAll(
-        `SELECT
-          b.id,
-          b.customer_name AS customerName,
-          b.customer_email AS customerEmail,
-          b.facility,
-          b.booking_date AS bookingDate,
-          b.booking_time AS bookingTime,
-          b.court,
-          b.amount,
-          b.currency,
-          b.payment_status AS paymentStatus,
-          b.created_at AS createdAt
-        FROM bookings b
-        ${whereClause}
-        ORDER BY b.created_at DESC
-        LIMIT ?`,
-        [...params, limit],
-      );
+      const fallbackSql = `SELECT
+        b.id,
+        b.customer_name AS customerName,
+        b.customer_email AS customerEmail,
+        b.facility,
+        b.booking_date AS bookingDate,
+        b.booking_time AS bookingTime,
+        b.court,
+        b.amount,
+        b.currency,
+        b.payment_status AS paymentStatus,
+        b.created_at AS createdAt
+      FROM bookings b
+      ${whereClause}
+      ORDER BY b.created_at DESC
+      LIMIT ${Number(limit) || 200}`;
+      const fallbackRows = await dbAll(fallbackSql, params);
 
       return fallbackRows.map((row) => ({
         id: row.id,
@@ -1023,9 +1020,8 @@ async function listBookings(filters = {}) {
       }));
     } catch {
       // Last-resort compatibility for older booking schemas.
-      const genericRows = await dbAll("SELECT * FROM bookings LIMIT ?", [
-        limit,
-      ]);
+      const genericSql = `SELECT * FROM bookings LIMIT ${Number(limit) || 200}`;
+      const genericRows = await dbAll(genericSql);
       return genericRows.map((row) => ({
         id: row.id || row.booking_id || "",
         userId: row.user_id || row.userId || null,
