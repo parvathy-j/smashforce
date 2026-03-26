@@ -1,30 +1,3 @@
-// Admin: Check membership status by email
-app.get("/admin/check-membership", requireAdmin, async (req, res) => {
-  try {
-    const email = String(req.query.email || "")
-      .trim()
-      .toLowerCase();
-    if (!email) {
-      return res.status(400).json({ error: "Email is required." });
-    }
-    const user = await findUserByEmail(email);
-    if (!user) {
-      return res.status(404).json({ error: "User not found." });
-    }
-    return res.json({
-      name: user.name,
-      email: user.email,
-      membershipType: user.membershipType || "none",
-      isAdmin: !!user.isAdmin,
-      createdAt: user.createdAt,
-    });
-  } catch (err) {
-    console.error("Check membership error:", err.message);
-    return res
-      .status(500)
-      .json({ error: "Unable to check membership status." });
-  }
-});
 // server.js
 // Express backend for Stripe Checkout and webhook verification.
 
@@ -2186,6 +2159,34 @@ app.get("/admin/bookings", requireAdmin, async (req, res) => {
       error:
         "Admin bookings retrieval failed: Unable to fetch booking data. Please check your filters and try again.",
     });
+  }
+});
+
+// Admin: Check membership status by email
+app.get("/admin/check-membership", requireAdmin, async (req, res) => {
+  try {
+    const email = String(req.query.email || "")
+      .trim()
+      .toLowerCase();
+    if (!email) {
+      return res.status(400).json({ error: "Email is required." });
+    }
+    const user = await findUserByEmail(email);
+    if (!user) {
+      return res.status(404).json({ error: "User not found." });
+    }
+    return res.json({
+      name: user.name,
+      email: user.email,
+      membershipType: user.membershipType || "none",
+      isAdmin: !!user.isAdmin,
+      createdAt: user.createdAt,
+    });
+  } catch (err) {
+    console.error("Check membership error:", err.message);
+    return res
+      .status(500)
+      .json({ error: "Unable to check membership status." });
   }
 });
 
