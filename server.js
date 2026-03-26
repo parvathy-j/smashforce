@@ -722,7 +722,7 @@ async function insertBooking(booking) {
       booking.membershipType || "",
       booking.appliedMembership || "none",
       Number(booking.amount || 0),
-      booking.currency || "usd",
+      booking.currency || "aud",
       booking.paymentStatus || "pending",
       booking.checkoutSessionId || null,
       booking.paymentIntentId || null,
@@ -886,7 +886,7 @@ async function reconcileStripeCheckoutSessions({
       membershipType: md.membershipType || "",
       appliedMembership: md.appliedMembership || "none",
       amount: Number(session.amount_total || 0),
-      currency: String(session.currency || "usd").toLowerCase(),
+      currency: String(session.currency || "aud").toLowerCase(),
       paymentStatus: mappedStatus,
       checkoutSessionId,
       source: "reconcile",
@@ -1037,7 +1037,7 @@ async function listBookings(filters = {}) {
         appliedMembership:
           row.applied_membership || row.appliedMembership || "none",
         amount: Number(row.amount || 0),
-        currency: row.currency || "usd",
+        currency: row.currency || "aud",
         paymentStatus:
           row.payment_status || row.paymentStatus || row.status || "pending",
         checkoutSessionId:
@@ -2488,7 +2488,7 @@ app.post(
         membershipType: payload.membershipType,
         appliedMembership: payload.appliedMembership,
         amount: payload.amount,
-        currency: "usd",
+        currency: "aud",
         paymentStatus: "pending",
         source: "checkout",
       });
@@ -2500,7 +2500,7 @@ app.post(
           {
             quantity: 1,
             price_data: {
-              currency: "usd",
+              currency: "aud",
               unit_amount: payload.amount,
               product_data: {
                 name: payload.label,
@@ -2742,7 +2742,7 @@ app.post(
         membershipType: payload.membershipType,
         appliedMembership: payload.appliedMembership,
         amount: payload.amount,
-        currency: "usd",
+        currency: "aud",
         paymentStatus: "pending",
         source: "payment-intent",
       });
