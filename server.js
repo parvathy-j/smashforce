@@ -101,6 +101,9 @@ function getMailerTransport() {
     host: SMTP_HOST,
     port: SMTP_PORT,
     secure: SMTP_SECURE,
+    connectionTimeout: 10000,
+    greetingTimeout: 10000,
+    socketTimeout: 15000,
   };
 
   if (SMTP_USER && SMTP_PASS) {
@@ -138,6 +141,7 @@ async function sendPasswordResetEmail({ toEmail, toName, resetLink }) {
     return true;
   } catch (err) {
     console.error("Password reset mail error:", err.message);
+    mailerTransport = null; // reset so next request gets a fresh transport
     return false;
   }
 }
@@ -191,6 +195,7 @@ async function sendContactFormEmail({ name, email, phone, topic, message }) {
     return true;
   } catch (err) {
     console.error("Contact form mail error:", err.message);
+    mailerTransport = null; // reset so next request gets a fresh transport
     return false;
   }
 }

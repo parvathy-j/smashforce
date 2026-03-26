@@ -102,6 +102,35 @@ test("POST /signup rejects invalid membership type", async () => {
   assert.equal(signup.body.error, "Invalid membership type.");
 });
 
+test("POST /forgot-password returns a reset token payload for an existing user", async () => {
+  const email = `reset_${Date.now()}@example.com`;
+
+  const signup = await requestJson(`${baseUrl}/signup`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      name: "Reset Tester",
+      email,
+      password: "Test1234!",
+      membershipType: "",
+    }),
+  });
+
+  assert.equal(signup.response.status, 201);
+
+  const forgotPassword = await requestJson(`${baseUrl}/forgot-password`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email }),
+  });
+
+  assert.equal(forgotPassword.response.status, 200);
+  assert.equal(forgotPassword.body.ok, true);
+  assert.equal(typeof forgotPassword.body.message, "string");
+  assert.equal(typeof forgotPassword.body.devResetToken, "string");
+  assert.ok(forgotPassword.body.devResetToken.length > 20);
+});
+
 test("Admin can create in-person walk-in booking", async () => {
   const email = `walkin_admin_${Date.now()}@example.com`;
 
