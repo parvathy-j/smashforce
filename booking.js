@@ -44,8 +44,8 @@ let paymentRequest = null;
 let walletAvailable = false;
 function setupPaymentRequest(amountCents) {
   paymentRequest = stripe.paymentRequest({
-    country: "US",
-    currency: "usd",
+    country: "AU",
+    currency: "aud",
     total: { label: "Smashforce Badminton Centre", amount: amountCents },
     requestPayerName: true,
     requestPayerEmail: true,

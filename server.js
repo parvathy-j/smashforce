@@ -2593,7 +2593,7 @@ app.post(
         membershipType: "",
         appliedMembership: "none",
         amount: payload.amount,
-        currency: "usd",
+        currency: "aud",
         paymentStatus: "pending_in_person",
         source: "in-person",
       });
@@ -2651,7 +2651,7 @@ app.post(
           {
             quantity: 1,
             price_data: {
-              currency: "usd",
+              currency: "aud",
               unit_amount: membershipPrice.amount,
               product_data: {
                 name: membershipPrice.label,
