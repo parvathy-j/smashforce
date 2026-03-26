@@ -1,5 +1,7 @@
 // ...existing code...
 // Place this after 'const app = express();'
+
+// Test Resend email endpoint (now correctly placed after app initialization)
 app.get("/test-email", async (req, res) => {
   try {
     // Example: send a test email using Resend or nodemailer
