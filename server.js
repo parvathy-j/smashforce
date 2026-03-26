@@ -2748,7 +2748,7 @@ app.post(
 
       const paymentIntent = await stripe.paymentIntents.create({
         amount: payload.amount,
-        currency: "usd",
+        currency: "aud",
         automatic_payment_methods: { enabled: true },
         metadata: {
           facility: payload.facility,
