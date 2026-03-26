@@ -1,3 +1,22 @@
+// Test Resend email endpoint
+app.get("/test-email", async (req, res) => {
+  try {
+    const { Resend } = require("resend");
+    const resend = new Resend(process.env.RESEND_API_KEY);
+
+    const response = await resend.emails.send({
+      from: "Smash Force <no-reply@smashforcebadminton.com>",
+      to: "your-email@gmail.com",
+      subject: "Test Email",
+      html: "<h2>Smash Force Email Working ✅</h2>",
+    });
+
+    res.json(response);
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Failed");
+  }
+});
 // Send booking confirmation email
 async function sendBookingConfirmationEmail({
   to,
