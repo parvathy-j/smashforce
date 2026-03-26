@@ -126,12 +126,13 @@ const FACILITIES = {
   },
 };
 
-
 // Fetch booked slots from backend
 async function getBooked(dateStr) {
   if (!state.facilityType || !state.courtNum || !dateStr) return [];
   try {
-    const res = await fetch(`/api/booked-slots?facility=${encodeURIComponent(state.facilityType)}&court=${encodeURIComponent(state.courtNum)}&date=${encodeURIComponent(dateStr)}`);
+    const res = await fetch(
+      `/api/booked-slots?facility=${encodeURIComponent(state.facilityType)}&court=${encodeURIComponent(state.courtNum)}&date=${encodeURIComponent(dateStr)}`,
+    );
     if (!res.ok) return [];
     const data = await res.json();
     return Array.isArray(data.booked) ? data.booked : [];
@@ -245,7 +246,6 @@ function changeMonth(dir) {
   renderCalendar();
 }
 
-
 async function selectDate(date, el) {
   clearFormError();
   state.date = date;
@@ -281,11 +281,7 @@ async function selectDate(date, el) {
 //  TIME SLOTS
 //
 
-const MORNING = [
-  "6:00 AM",
-  "7:00 AM",
-  "8:00 AM",
-];
+const MORNING = ["6:00 AM", "7:00 AM", "8:00 AM"];
 const EVENING = [
   "5:00 PM",
   "6:00 PM",

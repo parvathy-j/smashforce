@@ -12,12 +12,14 @@ router.get("/api/booked-slots", async (req, res) => {
     const court = String(req.query.court || "").trim();
     const date = String(req.query.date || "").trim();
     if (!facility || !court || !date) {
-      return res.status(400).json({ error: "Missing facility, court, or date" });
+      return res
+        .status(400)
+        .json({ error: "Missing facility, court, or date" });
     }
     // Query bookings for this facility/court/date
     const bookings = await listBookings({ facility, court, bookingDate: date });
     // Return array of booked times
-    const bookedTimes = bookings.map(b => b.bookingTime);
+    const bookedTimes = bookings.map((b) => b.bookingTime);
     return res.json({ booked: bookedTimes });
   } catch (err) {
     console.error("Booked slots API error:", err.message);
