@@ -917,22 +917,22 @@ async function listBookings(filters = {}) {
   const where = [];
   const params = [];
 
-  if (filters.userId) {
+  if (filters.userId && String(filters.userId).trim() !== "") {
     where.push("b.user_id = ?");
     params.push(filters.userId);
   }
 
-  if (filters.status) {
+  if (filters.status && String(filters.status).trim() !== "") {
     where.push("b.payment_status = ?");
     params.push(filters.status);
   }
 
-  if (filters.date) {
+  if (filters.date && String(filters.date).trim() !== "") {
     where.push("b.booking_date = ?");
     params.push(filters.date);
   }
 
-  if (filters.email) {
+  if (filters.email && String(filters.email).trim() !== "") {
     where.push("LOWER(b.customer_email) LIKE ?");
     params.push(`%${String(filters.email).toLowerCase()}%`);
   }
