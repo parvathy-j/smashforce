@@ -285,28 +285,19 @@ const MORNING = [
   "8:00 AM",
   "8:30 AM",
 ];
+const MORNING = [
+  "6:00 AM",
+  "7:00 AM",
+  "8:00 AM",
+];
 const EVENING = [
   "5:00 PM",
-  "5:30 PM",
   "6:00 PM",
-  "6:30 PM",
   "7:00 PM",
-  "7:30 PM",
   "8:00 PM",
-  "8:30 PM",
   "9:00 PM",
-  "9:30 PM",
   "10:00 PM",
-  "10:30 PM",
 ];
-
-function renderTimeSlots() {
-  if (!state.date) return;
-  const dateStr = fmtDate(state.date);
-  const booked = getBooked(dateStr);
-
-  let html = '<div class="time-sessions">';
-  html += buildSlotGroup("Morning Session", MORNING, booked);
   html += buildSlotGroup("Evening Session", EVENING, booked);
   html += "</div>";
   document.getElementById("timeContent").innerHTML = html;

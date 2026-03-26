@@ -1,3 +1,13 @@
+/* Strong summary box for booked courts/tables */
+.summary-box,
+.booked-summary {
+  background: var(--card);
+  color: var(--text);
+  border-radius: 8px;
+  padding: 1em 1.5em;
+  margin: 1em 0;
+  box-shadow: 0 2px 8px 0 rgba(0, 0, 0, 0.08);
+}
 :root {
   --bg: #0a2342;
   --bg-soft: #0f2f57;
