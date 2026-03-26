@@ -313,33 +313,28 @@ const MEMBERSHIP_PRICES = {
 
 function loadPromoCodes() {
   const raw = String(process.env.PROMO_CODES || "").trim();
+  let normalized = {};
+  // Always add a test promo code for $1 payments
+  normalized["TESTPAY"] = { type: "fixed", value: 1499, minAmount: 0 };
   if (!raw) {
-    return {};
+    return normalized;
   }
-
   try {
     const parsed = JSON.parse(raw);
     if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-      return {};
+      return normalized;
     }
-
-    const normalized = {};
     for (const [rawCode, rawRule] of Object.entries(parsed)) {
       const code = String(rawCode || "")
         .trim()
         .toUpperCase();
-      if (!code || !rawRule || typeof rawRule !== "object") {
-        continue;
-      }
-
+      if (!code || !rawRule || typeof rawRule !== "object") continue;
       const type = String(rawRule.type || "")
         .trim()
         .toLowerCase();
       if (type === "percent") {
         const value = Number(rawRule.value);
-        if (!Number.isFinite(value) || value <= 0 || value > 100) {
-          continue;
-        }
+        if (!Number.isFinite(value) || value <= 0 || value > 100) continue;
         normalized[code] = {
           type: "percent",
           value,
@@ -347,12 +342,9 @@ function loadPromoCodes() {
         };
         continue;
       }
-
       if (type === "fixed") {
         const cents = Number(rawRule.value);
-        if (!Number.isFinite(cents) || cents <= 0) {
-          continue;
-        }
+        if (!Number.isFinite(cents) || cents <= 0) continue;
         normalized[code] = {
           type: "fixed",
           value: Math.round(cents),
@@ -360,10 +352,9 @@ function loadPromoCodes() {
         };
       }
     }
-
     return normalized;
   } catch {
-    return {};
+    return normalized;
   }
 }
 
