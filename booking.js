@@ -363,6 +363,7 @@ function fmtDate(d) {
 //  FACILITY SELECTION
 //
 function selectFacility(type, card) {
+  console.log("[DEBUG] selectFacility called:", type, card);
   clearFormError();
   document
     .querySelectorAll(".fac-card")
@@ -380,7 +381,13 @@ function selectFacility(type, card) {
   state.courtNum = null;
   state.courtLabel = "";
 
-  document.getElementById("cp-" + type).style.display = "block";
+  const picker = document.getElementById("cp-" + type);
+  if (picker) {
+    picker.style.display = "block";
+    console.log("[DEBUG] Showing picker:", picker.id);
+  } else {
+    console.warn("[DEBUG] Picker not found for type:", type);
+  }
 
   if (type !== "table") {
     buildCourtNums(type, fac.courts);
@@ -390,6 +397,10 @@ function selectFacility(type, card) {
 
 function buildCourtNums(type, courts) {
   const container = document.getElementById("cn-" + type);
+  if (!container) {
+    console.warn("[DEBUG] buildCourtNums: container not found for", type);
+    return;
+  }
   container.innerHTML = "";
   courts.forEach((n) => {
     const el = document.createElement("div");
@@ -397,6 +408,7 @@ function buildCourtNums(type, courts) {
     el.textContent = n;
     el.onclick = (event) => selectCourt(n, el, type, event);
     container.appendChild(el);
+    console.log("[DEBUG] buildCourtNums: added court", n, "to", type);
   });
 }
 
@@ -413,6 +425,7 @@ function selectCourt(num, el, type, event) {
 }
 
 function selectTable(num, el, event) {
+  console.log("[DEBUG] selectTable called:", num, el);
   event?.stopPropagation();
   clearFormError();
   document
