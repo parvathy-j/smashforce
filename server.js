@@ -1,5 +1,14 @@
 // Send booking confirmation email
-async function sendBookingConfirmationEmail({ to, name, facility, court, date, time, duration, ref }) {
+async function sendBookingConfirmationEmail({
+  to,
+  name,
+  facility,
+  court,
+  date,
+  time,
+  duration,
+  ref,
+}) {
   const transporter = getMailerTransport();
   if (!transporter) return false;
   const mailOptions = {
@@ -8,26 +17,26 @@ async function sendBookingConfirmationEmail({ to, name, facility, court, date, t
     subject: `Booking Confirmed: ${facility} on ${date}`,
     text: [
       `Hi ${name || "Player"},`,
-      '',
+      "",
       `Your booking is confirmed!`,
-      '',
+      "",
       `Facility: ${facility}`,
       `Court/Table: ${court}`,
       `Date: ${date}`,
       `Time: ${time}`,
       `Duration: ${duration}`,
       `Reference: ${ref}`,
-      '',
-      'Please arrive 10 minutes before your session.',
-      '',
-      'Thank you for booking with Smashforce Badminton Centre!'
-    ].join('\n'),
+      "",
+      "Please arrive 10 minutes before your session.",
+      "",
+      "Thank you for booking with Smashforce Badminton Centre!",
+    ].join("\n"),
   };
   try {
     await transporter.sendMail(mailOptions);
     return true;
   } catch (err) {
-    console.error('Booking confirmation email failed:', err.message);
+    console.error("Booking confirmation email failed:", err.message);
     return false;
   }
 }
@@ -2571,7 +2580,7 @@ app.post(
         currency: session.currency,
         url: session.url,
         amount_total: session.amount_total,
-        payment_status: session.payment_status
+        payment_status: session.payment_status,
       });
 
       await updateBookingById(bookingId, {
@@ -2881,7 +2890,8 @@ app.post(
         });
 
         // Send confirmation email to customer
-        const email = session.customer_details?.email || session.metadata?.email;
+        const email =
+          session.customer_details?.email || session.metadata?.email;
         if (email) {
           const name = session.metadata?.name || "Player";
           const facility = session.metadata?.facility || "Facility";
@@ -2898,7 +2908,7 @@ app.post(
             date,
             time,
             duration,
-            ref
+            ref,
           });
         }
       }
