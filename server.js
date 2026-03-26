@@ -937,40 +937,44 @@ async function listBookings(filters = {}) {
     params.push(`%${String(filters.email).toLowerCase()}%`);
   }
 
-  const limit = Math.max(1, Math.min(Number(filters.limit || 100), 500));
+  let limit = Number(filters.limit);
+  if (!Number.isFinite(limit) || limit < 1 || limit > 500) {
+    limit = 100;
+  }
   const whereClause = where.length ? `WHERE ${where.join(" AND ")}` : "";
 
+  const sql = `SELECT
+    b.id,
+    b.user_id AS userId,
+    b.customer_name AS customerName,
+    b.customer_email AS customerEmail,
+    b.customer_phone AS customerPhone,
+    b.facility,
+    b.booking_date AS bookingDate,
+    b.booking_time AS bookingTime,
+    b.duration,
+    b.court,
+    b.membership_type AS membershipType,
+    b.applied_membership AS appliedMembership,
+    b.amount,
+    b.currency,
+    b.payment_status AS paymentStatus,
+    b.checkout_session_id AS checkoutSessionId,
+    b.payment_intent_id AS paymentIntentId,
+    b.source,
+    b.created_at AS createdAt,
+    u.name AS accountName,
+    u.email AS accountEmail
+  FROM bookings b
+  LEFT JOIN users u ON u.id = b.user_id
+  ${whereClause}
+  ORDER BY b.created_at DESC
+  LIMIT ?`;
+  const finalParams = [...params, limit];
+  console.log("[listBookings] SQL:", sql);
+  console.log("[listBookings] Params:", finalParams);
   try {
-    return await dbAll(
-      `SELECT
-        b.id,
-        b.user_id AS userId,
-        b.customer_name AS customerName,
-        b.customer_email AS customerEmail,
-        b.customer_phone AS customerPhone,
-        b.facility,
-        b.booking_date AS bookingDate,
-        b.booking_time AS bookingTime,
-        b.duration,
-        b.court,
-        b.membership_type AS membershipType,
-        b.applied_membership AS appliedMembership,
-        b.amount,
-        b.currency,
-        b.payment_status AS paymentStatus,
-        b.checkout_session_id AS checkoutSessionId,
-        b.payment_intent_id AS paymentIntentId,
-        b.source,
-        b.created_at AS createdAt,
-        u.name AS accountName,
-        u.email AS accountEmail
-      FROM bookings b
-      LEFT JOIN users u ON u.id = b.user_id
-      ${whereClause}
-      ORDER BY b.created_at DESC
-      LIMIT ?`,
-      [...params, limit],
-    );
+    return await dbAll(sql, finalParams);
   } catch (err) {
     const message = String(err?.message || "").toLowerCase();
     const isSchemaMismatch =
