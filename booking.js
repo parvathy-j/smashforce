@@ -1032,10 +1032,7 @@ function showSuccess(sessionId = "") {
   const ref = sessionId
     ? `SFA-${sessionId.slice(-8).toUpperCase()}`
     : "SFA-" + Math.random().toString(36).substr(2, 6).toUpperCase();
-  const dur =
-    state.durationHrs === 0.5
-      ? "30 min"
-      : `${state.durationHrs} hr${state.durationHrs > 1 ? "s" : ""}`;
+  const dur = "1 hr";
 
   setText("succ-email", document.getElementById("f-email").value);
   setText("succ-ref", ref);
