@@ -126,18 +126,18 @@ const FACILITIES = {
   },
 };
 
-// Simulated booked slots (court => date-string => [times])
-const BOOKED = {
-  "standard-1": {
-    "2026-03-14": ["6:00 AM", "6:30 AM"],
-    "2026-03-15": ["7:00 AM"],
-  },
-  "single-7": { "2026-03-14": ["5:00 PM", "5:30 PM"] },
-};
 
-function getBooked(dateStr) {
-  const key = `${state.facilityType}-${state.courtNum}`;
-  return (BOOKED[key] && BOOKED[key][dateStr]) || [];
+// Fetch booked slots from backend
+async function getBooked(dateStr) {
+  if (!state.facilityType || !state.courtNum || !dateStr) return [];
+  try {
+    const res = await fetch(`/api/booked-slots?facility=${encodeURIComponent(state.facilityType)}&court=${encodeURIComponent(state.courtNum)}&date=${encodeURIComponent(dateStr)}`);
+    if (!res.ok) return [];
+    const data = await res.json();
+    return Array.isArray(data.booked) ? data.booked : [];
+  } catch (e) {
+    return [];
+  }
 }
 
 //
@@ -245,7 +245,8 @@ function changeMonth(dir) {
   renderCalendar();
 }
 
-function selectDate(date, el) {
+
+async function selectDate(date, el) {
   clearFormError();
   state.date = date;
   // Format label
@@ -270,6 +271,8 @@ function selectDate(date, el) {
   // Reset time
   state.startTime = "";
   state.endTime = "";
+  // Fetch booked slots and render
+  state.bookedSlots = await getBooked(fmtDate(date));
   renderTimeSlots();
   updateSummary();
 }
@@ -277,6 +280,7 @@ function selectDate(date, el) {
 //
 //  TIME SLOTS
 //
+
 const MORNING = [
   "6:00 AM",
   "7:00 AM",
@@ -290,6 +294,11 @@ const EVENING = [
   "9:00 PM",
   "10:00 PM",
 ];
+
+function renderTimeSlots() {
+  const booked = state.bookedSlots || [];
+  let html = "<div>";
+  html += buildSlotGroup("Morning Session", MORNING, booked);
   html += buildSlotGroup("Evening Session", EVENING, booked);
   html += "</div>";
   document.getElementById("timeContent").innerHTML = html;
@@ -827,11 +836,8 @@ function populateConfirm() {
   setText("c-court", state.courtLabel);
   setText("c-date", state.dateLabel);
   setText("c-time", `${state.startTime} - ${state.endTime}`);
-  const dur =
-    state.durationHrs === 0.5
-      ? "30 min"
-      : `${state.durationHrs} hr${state.durationHrs > 1 ? "s" : ""}`;
-  setText("c-dur", dur);
+  // Always show 1 hr for duration
+  setText("c-dur", "1 hr");
   setText("c-mem", memLabels[memSel] || "None");
   updateSummary();
 }

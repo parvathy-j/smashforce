@@ -313,6 +313,9 @@ const MEMBERSHIP_PRICES = {
     amount: 7900,
   },
 };
+// Booked slots API
+const bookedSlotsApi = require("./api-booked-slots");
+app.use(bookedSlotsApi);
 // Test Resend email endpoint (now correctly placed after app initialization)
 app.get("/test-email", async (req, res) => {
   try {
