@@ -64,12 +64,12 @@ function setSessionLabel(message) {
   }
 }
 
-function formatMoney(cents, currency = "usd") {
+function formatMoney(cents, currency = "aud") {
   const amount = Number(cents || 0) / 100;
   try {
     return new Intl.NumberFormat("en-US", {
       style: "currency",
-      currency: String(currency || "usd").toUpperCase(),
+      currency: String(currency || "aud").toUpperCase(),
     }).format(amount);
   } catch {
     return `$${amount.toFixed(2)}`;
