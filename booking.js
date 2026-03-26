@@ -1,4 +1,14 @@
-﻿//
+﻿// Expose booking functions globally for inline HTML event handlers
+window.selectFacility = selectFacility;
+window.selectCourt = selectCourt;
+window.selectTable = selectTable;
+window.setDuration = setDuration;
+window.step1Next = step1Next;
+window.step2Next = step2Next;
+window.step3Next = step3Next;
+window.goStep = goStep;
+window.maybeGoStep = maybeGoStep;
+//
 //  STRIPE SETUP
 //   Replace 'pk_test_...' with your actual publishable key
 //   The backend endpoint /create-checkout-session must be available
