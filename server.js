@@ -1,17 +1,18 @@
 // Test Resend email endpoint
 app.get("/test-email", async (req, res) => {
   try {
-    const { Resend } = require("resend");
-    const resend = new Resend(process.env.RESEND_API_KEY);
-
-    const response = await resend.emails.send({
-      from: "Smash Force <no-reply@smashforcebadminton.com>",
-      to: "your-email@gmail.com",
-      subject: "Test Email",
-      html: "<h2>Smash Force Email Working ✅</h2>",
+    // Example: send a test email using Resend or nodemailer
+    const transporter = getMailerTransport();
+    if (!transporter) {
+      return res.status(500).json({ error: "SMTP not configured" });
+    }
+    await transporter.sendMail({
+      from: SMTP_FROM,
+      to: SMTP_FROM,
+      subject: "Test Email from Smashforce Server",
+      text: "This is a test email from the /test-email endpoint.",
     });
-
-    res.json(response);
+    res.json({ ok: true, message: "Test email sent (check your SMTP inbox)" });
   } catch (err) {
     console.error(err);
     res.status(500).send("Failed");
