@@ -191,6 +191,45 @@ function buildBookingsQuery() {
   return params.toString();
 }
 
+function renderBookedSummary(bookings = []) {
+  const summaryDiv = document.getElementById("bookedSummaryContent");
+  if (!summaryDiv) return;
+
+  // Get selected date
+  const dateInput = document.getElementById("bookingsDateFilter");
+  const selectedDate = dateInput && dateInput.value ? dateInput.value : null;
+  if (!selectedDate) {
+    summaryDiv.textContent = "Select a date to see booked courts/tables.";
+    return;
+  }
+
+  // Aggregate bookings by facility/court for the selected date
+  const byFacility = {};
+  bookings.forEach((b) => {
+    if (b.bookingDate !== selectedDate) return;
+    const fac = b.facility || "Unknown";
+    const court = b.court || "";
+    if (!byFacility[fac]) byFacility[fac] = new Set();
+    if (court) byFacility[fac].add(court);
+  });
+
+  if (Object.keys(byFacility).length === 0) {
+    summaryDiv.textContent = "No courts/tables booked for this date.";
+    return;
+  }
+
+  // Build summary HTML
+  const lines = [];
+  for (const [fac, courts] of Object.entries(byFacility)) {
+    if (courts.size > 0) {
+      lines.push(`<strong>${fac}:</strong> ${Array.from(courts).join(", ")}`);
+    } else {
+      lines.push(`<strong>${fac}:</strong> (all)`);
+    }
+  }
+  summaryDiv.innerHTML = lines.join("<br>");
+}
+
 async function loadAdminBookings() {
   try {
     const query = buildBookingsQuery();
@@ -200,8 +239,10 @@ async function loadAdminBookings() {
       throw new Error(data?.error || "Could not load bookings.");
     }
     renderBookingRows(data.bookings || []);
+    renderBookedSummary(data.bookings || []);
   } catch (err) {
     setStatus(err.message || "Failed to load bookings.");
+    renderBookedSummary([]);
   }
 }
 
@@ -297,6 +338,33 @@ document
 document
   .getElementById("bookingsEmailFilter")
   ?.addEventListener("input", loadAdminBookings);
+
+// Reconcile button logic
+document
+  .getElementById("reconcileBookingsBtn")
+  ?.addEventListener("click", async () => {
+    setStatus("Reconciling with Stripe...");
+    try {
+      const response = await fetch("/admin/reconcile-bookings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ hours: 48, limit: 100 }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data?.error || "Reconciliation failed.");
+      }
+      setStatus(
+        "Reconciliation complete. " +
+          (data.summary
+            ? `Inserted: ${data.summary.inserted}, Updated: ${data.summary.updated}, Skipped: ${data.summary.skipped}`
+            : ""),
+      );
+      await loadAdminBookings();
+    } catch (err) {
+      setStatus(err.message || "Reconciliation failed.");
+    }
+  });
 
 requireAdminSession().then(async (ok) => {
   if (ok) {

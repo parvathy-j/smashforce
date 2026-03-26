@@ -85,6 +85,14 @@
           <button id="refreshBookingsBtn" class="btn" type="button">
             Refresh
           </button>
+          <button
+            id="reconcileBookingsBtn"
+            class="btn"
+            type="button"
+            style="margin-left: 1em"
+          >
+            Reconcile
+          </button>
         </div>
 
         <div class="bookings-filters">
@@ -111,6 +119,21 @@
               placeholder="Search email"
             />
           </label>
+        </div>
+
+        <!-- Booked Courts/Tables Summary -->
+        <div
+          id="bookedSummary"
+          class="booked-summary"
+          style="
+            margin: 1em 0;
+            padding: 0.5em 1em;
+            background: #f7faff;
+            border-radius: 6px;
+          "
+        >
+          <strong>Booked Courts/Tables for selected date:</strong>
+          <div id="bookedSummaryContent" style="margin-top: 0.5em"></div>
         </div>
 
         <div class="bookings-table-wrap">

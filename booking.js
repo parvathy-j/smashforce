@@ -98,7 +98,7 @@ const state = {
   dateLabel: "",
   startTime: "",
   endTime: "",
-  durationHrs: 0.5,
+  durationHrs: 1,
   total: 0,
   calYear: 0,
   calMonth: 0,
@@ -347,23 +347,24 @@ function clearFormError() {
 }
 
 function setDuration(hrs, btn) {
-  state.durationHrs = hrs;
+  // Only 1 hour allowed
+  state.durationHrs = 1;
   document
     .querySelectorAll(".dur-btn")
     .forEach((b) => b.classList.remove("active"));
-  btn.classList.add("active");
+  if (btn) btn.classList.add("active");
   if (state.startTime) {
-    state.endTime = calcEndTime(state.startTime, hrs);
+    state.endTime = calcEndTime(state.startTime, 1);
     updateSummary();
   }
   if (state.date) renderTimeSlots();
 }
 
 function calcEndTime(start, hrs) {
+  // Always 1 hour
   const all = [...MORNING, ...EVENING];
   const idx = all.indexOf(start);
-  const slots = Math.round(hrs * 2); // 30-min slots
-  return all[idx + slots] || "11:00 PM";
+  return all[idx + 2] || "11:00 PM";
 }
 
 function fmtDate(d) {
@@ -700,10 +701,7 @@ function calcTotal() {
 function updateSummary() {
   const total = calcTotal();
   state.total = total;
-  const dur =
-    state.durationHrs === 0.5
-      ? "30 min"
-      : `${state.durationHrs} hr${state.durationHrs > 1 ? "s" : ""}`;
+  const dur = `${state.durationHrs} hr`;
   const timeStr = state.startTime
     ? `${state.startTime} - ${state.endTime}`
     : "-";
