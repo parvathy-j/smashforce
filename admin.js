@@ -1,3 +1,26 @@
+// Membership lookup logic
+document
+  .getElementById("membershipLookupForm")
+  ?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const email = document.getElementById("membershipLookupEmail").value.trim();
+    const resultDiv = document.getElementById("membershipLookupResult");
+    resultDiv.textContent = "Checking...";
+    try {
+      const res = await fetch(
+        `/admin/check-membership?email=${encodeURIComponent(email)}`,
+      );
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || "Unknown error");
+      let status =
+        data.membershipType && data.membershipType !== "none"
+          ? `Member (${data.membershipType})`
+          : "Not a member";
+      resultDiv.textContent = `${data.name} (${data.email}): ${status}`;
+    } catch (err) {
+      resultDiv.textContent = err.message || "Could not check membership.";
+    }
+  });
 const defaults = {
   logoTagline: "Experience the Power of the Smash.",
   heroAnnouncement: "Now accepting bookings",
