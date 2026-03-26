@@ -66,6 +66,7 @@ const SMTP_USER = String(process.env.SMTP_USER || "").trim();
 const SMTP_PASS = String(process.env.SMTP_PASS || "");
 const SMTP_FROM = String(process.env.SMTP_FROM || SMTP_USER || "").trim();
 const SMTP_REPLY_TO = String(process.env.SMTP_REPLY_TO || "").trim();
+const SMTP_DEBUG = process.env.SMTP_DEBUG === "1";
 const CONTACT_FORM_TO = String(
   process.env.CONTACT_FORM_TO || "info@smashforcebaminton.com",
 ).trim();
@@ -86,6 +87,28 @@ const rateLimitBuckets = new Map();
 
 function isSmtpConfigured() {
   return Boolean(SMTP_HOST && Number.isFinite(SMTP_PORT) && SMTP_FROM);
+}
+
+function getSmtpConfigSummary() {
+  return {
+    host: SMTP_HOST || "(empty)",
+    port: SMTP_PORT,
+    secure: SMTP_SECURE,
+    hasUser: Boolean(SMTP_USER),
+    hasPass: Boolean(SMTP_PASS),
+    from: SMTP_FROM || "(empty)",
+    replyTo: SMTP_REPLY_TO || "(empty)",
+  };
+}
+
+function getMailErrorDetails(err) {
+  return {
+    message: err?.message || "Unknown mail error",
+    code: err?.code || "",
+    responseCode: err?.responseCode || "",
+    command: err?.command || "",
+    response: err?.response || "",
+  };
 }
 
 function getMailerTransport() {
@@ -140,7 +163,10 @@ async function sendPasswordResetEmail({ toEmail, toName, resetLink }) {
     await transporter.sendMail(mailOptions);
     return true;
   } catch (err) {
-    console.error("Password reset mail error:", err.message);
+    console.error("Password reset mail error:", getMailErrorDetails(err));
+    if (SMTP_DEBUG) {
+      console.info("SMTP config summary:", getSmtpConfigSummary());
+    }
     mailerTransport = null; // reset so next request gets a fresh transport
     return false;
   }
@@ -194,7 +220,10 @@ async function sendContactFormEmail({ name, email, phone, topic, message }) {
     await transporter.sendMail(mailOptions);
     return true;
   } catch (err) {
-    console.error("Contact form mail error:", err.message);
+    console.error("Contact form mail error:", getMailErrorDetails(err));
+    if (SMTP_DEBUG) {
+      console.info("SMTP config summary:", getSmtpConfigSummary());
+    }
     mailerTransport = null; // reset so next request gets a fresh transport
     return false;
   }
@@ -2829,6 +2858,8 @@ async function startServer(port = Number(process.env.PORT) || 3000) {
       console.warn(
         "SMTP is not configured. Forgot-password and contact-form emails will not be delivered.",
       );
+    } else if (SMTP_DEBUG) {
+      console.info("SMTP config summary:", getSmtpConfigSummary());
     }
     await maybeMigrateLegacyUsers();
 
