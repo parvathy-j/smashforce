@@ -279,14 +279,6 @@ function selectDate(date, el) {
 //
 const MORNING = [
   "6:00 AM",
-  "6:30 AM",
-  "7:00 AM",
-  "7:30 AM",
-  "8:00 AM",
-  "8:30 AM",
-];
-const MORNING = [
-  "6:00 AM",
   "7:00 AM",
   "8:00 AM",
 ];
@@ -338,7 +330,7 @@ function clearFormError() {
 }
 
 function setDuration(hrs, btn) {
-  // Only 1 hour allowed
+  // Only 1 hour allowed, force always
   state.durationHrs = 1;
   document
     .querySelectorAll(".dur-btn")
@@ -355,7 +347,7 @@ function calcEndTime(start, hrs) {
   // Always 1 hour
   const all = [...MORNING, ...EVENING];
   const idx = all.indexOf(start);
-  return all[idx + 2] || "11:00 PM";
+  return all[idx + 1] || "11:00 PM";
 }
 
 function fmtDate(d) {
@@ -692,7 +684,7 @@ function calcTotal() {
 function updateSummary() {
   const total = calcTotal();
   state.total = total;
-  const dur = `${state.durationHrs} hr`;
+  const dur = `1 hr`;
   const timeStr = state.startTime
     ? `${state.startTime} - ${state.endTime}`
     : "-";
