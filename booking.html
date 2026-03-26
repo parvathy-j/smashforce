@@ -1193,64 +1193,35 @@
         return [...state.selectedSlots].sort(slotOrder);
       }
 
-      function isMultiThirtyMinuteMode() {
-        return state.durationHrs === 0.5;
-      }
+
 
       function hasSelectedTimes() {
-        return isMultiThirtyMinuteMode()
-          ? state.selectedSlots.length > 0
-          : Boolean(state.startTime);
+        return Boolean(state.startTime);
       }
 
+      // No-op: Only 1-hour mode
       function syncSelectionBounds() {
-        const ordered = getSelectedSlotsOrdered();
-        if (!ordered.length) {
-          state.startTime = "";
-          state.endTime = "";
-          return;
-        }
-
-        state.startTime = ordered[0];
-        state.endTime = calcEndTime(ordered[ordered.length - 1], 0.5);
+        return;
       }
 
       function getEffectiveDurationHours() {
         if (!hasSelectedTimes()) {
           return 0;
         }
-        if (isMultiThirtyMinuteMode()) {
-          return state.selectedSlots.length * 0.5;
-        }
-        return state.durationHrs;
+        return 1;
       }
 
       function getDurationLabel() {
-        const hrs = getEffectiveDurationHours();
-        if (!hrs) {
+        if (!hasSelectedTimes()) {
           return "-";
         }
-        if (hrs === 0.5) {
-          return "30 min";
-        }
-        return `${hrs} hr${hrs > 1 ? "s" : ""}`;
+        return "1 hr";
       }
 
       function getDisplayTimeText() {
         if (!hasSelectedTimes()) {
           return "-";
         }
-
-        if (isMultiThirtyMinuteMode()) {
-          const ordered = getSelectedSlotsOrdered();
-          if (ordered.length === 1) {
-            return `${ordered[0]} - ${calcEndTime(ordered[0], 0.5)}`;
-          }
-          return ordered
-            .map((slot) => `${slot} - ${calcEndTime(slot, 0.5)}`)
-            .join(", ");
-        }
-
         return `${state.startTime} - ${state.endTime}`;
       }
 
@@ -1258,14 +1229,6 @@
         if (!hasSelectedTimes()) {
           return "";
         }
-
-        if (isMultiThirtyMinuteMode()) {
-          const ordered = getSelectedSlotsOrdered();
-          return ordered
-            .map((slot) => `${slot} - ${calcEndTime(slot, 0.5)}`)
-            .join(", ");
-        }
-
         return `${state.startTime} - ${state.endTime}`;
       }
 
@@ -1274,14 +1237,7 @@
         const dateStr = fmtDate(state.date);
         const booked = getBooked(dateStr);
 
-        // If a previously selected slot is now invalid (booked or already past today), reset it.
-        if (isMultiThirtyMinuteMode()) {
-          state.selectedSlots = state.selectedSlots.filter(
-            (slot) =>
-              !booked.includes(slot) && !isPastTimeForSelectedDate(slot),
-          );
-          syncSelectionBounds();
-        } else if (
+        if (
           state.startTime &&
           (booked.includes(state.startTime) ||
             isPastTimeForSelectedDate(state.startTime))
@@ -1360,20 +1316,8 @@
 
       function selectSlot(time) {
         clearFormError();
-        if (isMultiThirtyMinuteMode()) {
-          if (state.selectedSlots.includes(time)) {
-            state.selectedSlots = state.selectedSlots.filter(
-              (slot) => slot !== time,
-            );
-          } else {
-            state.selectedSlots.push(time);
-          }
-          syncSelectionBounds();
-        } else {
-          state.selectedSlots = [];
-          state.startTime = time;
-          state.endTime = calcEndTime(time, state.durationHrs);
-        }
+        state.startTime = time;
+        state.endTime = calcEndTime(time, 1);
         renderTimeSlots();
         updateSummary();
       }
@@ -1489,40 +1433,22 @@
       }
 
       function setDuration(hrs, btn) {
-        if (state.promoCode) {
-          clearAppliedPromo();
-        }
-        const wasMultiMode = isMultiThirtyMinuteMode();
-        state.durationHrs = hrs;
+        state.durationHrs = 1;
         document
           .querySelectorAll(".dur-btn")
           .forEach((b) => b.classList.remove("active"));
         btn.classList.add("active");
-
-        if (isMultiThirtyMinuteMode()) {
-          if (state.startTime && state.selectedSlots.length === 0) {
-            state.selectedSlots = [state.startTime];
-          }
-          syncSelectionBounds();
-        } else {
-          if (wasMultiMode && state.selectedSlots.length > 0) {
-            state.startTime = getSelectedSlotsOrdered()[0];
-          }
-          state.selectedSlots = [];
+        if (state.startTime) {
+          state.endTime = calcEndTime(state.startTime, 1);
+          updateSummary();
         }
-
-        if (state.startTime && !isMultiThirtyMinuteMode()) {
-          state.endTime = calcEndTime(state.startTime, hrs);
-        }
-        updateSummary();
         if (state.date) renderTimeSlots();
       }
 
       function calcEndTime(start, hrs) {
         const all = allSlots();
         const idx = all.indexOf(start);
-        const slots = Math.round(hrs * 2); // 30-min slots
-        return all[idx + slots] || "11:00 PM";
+        return all[idx + 1] || "11:00 PM";
       }
 
       function fmtDate(d) {
@@ -2206,28 +2132,27 @@
         const email = document.getElementById("f-email").value;
         const phone = document.getElementById("f-phone").value;
         const memSel = authState.user?.membershipType || "";
-        const memLabels = {
-          "": "None",
-          court: "Court Membership",
-          "all-access": "All Access Membership",
+        const state = {
+          step: 1,
+          facilityType: null, // 'standard' | 'single' | 'table'
+          facilityLabel: "",
+          courtNum: null,
+          courtLabel: "",
+          price: 0, // base price per hour
+          memberPrice: 0, // member price per hour
+          isMember: false,
+          date: null, // Date object
+          dateLabel: "",
+          startTime: "",
+          endTime: "",
+          durationHrs: 1,
+          total: 0,
+          promoCode: "",
+          promoDiscount: 0,
+          calYear: 0,
+          calMonth: 0,
+          payMethod: "card",
         };
-
-        setText("c-name", `${fname} ${lname}`);
-        setText("c-email", email);
-        setText("c-phone", phone);
-        setText("c-fac", state.facilityLabel);
-        setText("c-court", state.courtLabel);
-        setText("c-date", state.dateLabel);
-        setText("c-time", getDisplayTimeText());
-        const dur = getDurationLabel();
-        setText("c-dur", dur);
-        setText("c-mem", memLabels[memSel] || "None");
-        updateSummary();
-      }
-
-      //
-      //  PAYMENT SUBMISSION
-      //
       function setPayMethod(method, el) {
         if ((method === "apple" || method === "google") && !walletAvailable) {
           const payMethods = document.querySelectorAll(".pm");
