@@ -1,68 +1,6 @@
 // ...existing code...
 // Place this after 'const app = express();'
 
-// Test Resend email endpoint (now correctly placed after app initialization)
-app.get("/test-email", async (req, res) => {
-  try {
-    // Example: send a test email using Resend or nodemailer
-    const transporter = getMailerTransport();
-    if (!transporter) {
-      return res.status(500).json({ error: "SMTP not configured" });
-    }
-    await transporter.sendMail({
-      from: SMTP_FROM,
-      to: SMTP_FROM,
-      subject: "Test Email from Smashforce Server",
-      text: "This is a test email from the /test-email endpoint.",
-    });
-    res.json({ ok: true, message: "Test email sent (check your SMTP inbox)" });
-  } catch (err) {
-    console.error(err);
-    res.status(500).send("Failed");
-  }
-});
-// Send booking confirmation email
-async function sendBookingConfirmationEmail({
-  to,
-  name,
-  facility,
-  court,
-  date,
-  time,
-  duration,
-  ref,
-}) {
-  const transporter = getMailerTransport();
-  if (!transporter) return false;
-  const mailOptions = {
-    from: SMTP_FROM,
-    to,
-    subject: `Booking Confirmed: ${facility} on ${date}`,
-    text: [
-      `Hi ${name || "Player"},`,
-      "",
-      `Your booking is confirmed!`,
-      "",
-      `Facility: ${facility}`,
-      `Court/Table: ${court}`,
-      `Date: ${date}`,
-      `Time: ${time}`,
-      `Duration: ${duration}`,
-      `Reference: ${ref}`,
-      "",
-      "Please arrive 10 minutes before your session.",
-      "",
-      "Thank you for booking with Smashforce Badminton Centre!",
-    ].join("\n"),
-  };
-  try {
-    await transporter.sendMail(mailOptions);
-    return true;
-  } catch (err) {
-    console.error("Booking confirmation email failed:", err.message);
-    return false;
-  }
-}
 // server.js
 // Express backend for Stripe Checkout and webhook verification.
 
@@ -375,6 +313,68 @@ const MEMBERSHIP_PRICES = {
     amount: 7900,
   },
 };
+// Test Resend email endpoint (now correctly placed after app initialization)
+app.get("/test-email", async (req, res) => {
+  try {
+    // Example: send a test email using Resend or nodemailer
+    const transporter = getMailerTransport();
+    if (!transporter) {
+      return res.status(500).json({ error: "SMTP not configured" });
+    }
+    await transporter.sendMail({
+      from: SMTP_FROM,
+      to: SMTP_FROM,
+      subject: "Test Email from Smashforce Server",
+      text: "This is a test email from the /test-email endpoint.",
+    });
+    res.json({ ok: true, message: "Test email sent (check your SMTP inbox)" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Failed");
+  }
+});
+// Send booking confirmation email
+async function sendBookingConfirmationEmail({
+  to,
+  name,
+  facility,
+  court,
+  date,
+  time,
+  duration,
+  ref,
+}) {
+  const transporter = getMailerTransport();
+  if (!transporter) return false;
+  const mailOptions = {
+    from: SMTP_FROM,
+    to,
+    subject: `Booking Confirmed: ${facility} on ${date}`,
+    text: [
+      `Hi ${name || "Player"},`,
+      "",
+      `Your booking is confirmed!`,
+      "",
+      `Facility: ${facility}`,
+      `Court/Table: ${court}`,
+      `Date: ${date}`,
+      `Time: ${time}`,
+      `Duration: ${duration}`,
+      `Reference: ${ref}`,
+      "",
+      "Please arrive 10 minutes before your session.",
+      "",
+      "Thank you for booking with Smashforce Badminton Centre!",
+    ].join("\n"),
+  };
+  try {
+    await transporter.sendMail(mailOptions);
+    return true;
+  } catch (err) {
+    console.error("Booking confirmation email failed:", err.message);
+    return false;
+  }
+}
 
 function loadPromoCodes() {
   const raw = String(process.env.PROMO_CODES || "").trim();
