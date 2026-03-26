@@ -120,7 +120,22 @@ function renderBookingRows(bookings = []) {
     const customer = booking.customerName || booking.customerEmail || "-";
     const facility = booking.facility || "-";
     const date = booking.bookingDate || "-";
-    const time = booking.bookingTime || "-";
+    // Always show as 1-hour slot if possible
+    let time = booking.bookingTime || "-";
+    if (time && time.includes("-")) {
+      // Already a range
+    } else if (time && time.match(/\d/)) {
+      // Try to parse and add 1 hour
+      const [start, ampm] = time.split(" ");
+      let [h, m] = start.split(":").map(Number);
+      let hour = h;
+      if (ampm && ampm.toLowerCase().includes("pm") && hour < 12) hour += 12;
+      let endHour = hour + 1;
+      let endAmpm = endHour >= 12 ? "PM" : "AM";
+      if (endHour > 12) endHour -= 12;
+      const end = `${endHour}:${m.toString().padStart(2, "0")} ${endAmpm}`;
+      time = `${time} - ${end}`;
+    }
     const amount = formatMoney(booking.amount, booking.currency);
     const status = String(booking.paymentStatus || "pending").toLowerCase();
 
@@ -203,31 +218,51 @@ function renderBookedSummary(bookings = []) {
     return;
   }
 
-  // Aggregate bookings by facility/court for the selected date
-  const byFacility = {};
+  // Define all courts/tables by facility
+  const FACILITIES = {
+    "Standard Courts (1-6)": [1, 2, 3, 4, 5, 6],
+    "Single Courts (7-9)": [7, 8, 9],
+    "Multi-Game Tables": [
+      "Table 1",
+      "Table 2",
+      "Table 3",
+      "Table 4",
+      "Table 5",
+    ],
+  };
+
+  // Find booked courts/tables for the selected date
+  const booked = {
+    "Standard Courts (1-6)": new Set(),
+    "Single Courts (7-9)": new Set(),
+    "Multi-Game Tables": new Set(),
+  };
   bookings.forEach((b) => {
     if (b.bookingDate !== selectedDate) return;
-    const fac = b.facility || "Unknown";
-    const court = b.court || "";
-    if (!byFacility[fac]) byFacility[fac] = new Set();
-    if (court) byFacility[fac].add(court);
+    if (b.facility && b.court) {
+      if (b.facility.toLowerCase().includes("standard"))
+        booked["Standard Courts (1-6)"].add(Number(b.court));
+      else if (b.facility.toLowerCase().includes("single"))
+        booked["Single Courts (7-9)"].add(Number(b.court));
+      else if (b.facility.toLowerCase().includes("table"))
+        booked["Multi-Game Tables"].add(b.court);
+    }
   });
-
-  if (Object.keys(byFacility).length === 0) {
-    summaryDiv.textContent = "No courts/tables booked for this date.";
-    return;
-  }
 
   // Build summary HTML
   const lines = [];
-  for (const [fac, courts] of Object.entries(byFacility)) {
-    if (courts.size > 0) {
-      lines.push(`<strong>${fac}:</strong> ${Array.from(courts).join(", ")}`);
-    } else {
-      lines.push(`<strong>${fac}:</strong> (all)`);
-    }
+  for (const [fac, courts] of Object.entries(FACILITIES)) {
+    lines.push(`<strong>${fac}:</strong>`);
+    lines.push('<ul style="margin:0 0 0 1em;padding:0;list-style:none;">');
+    courts.forEach((court) => {
+      const isBooked = booked[fac].has(court);
+      lines.push(
+        `<li>${typeof court === "number" ? "Court " + court : court} <span style="color:${isBooked ? "#d32f2f" : "#388e3c"};font-weight:600;">${isBooked ? "Booked" : "Available"}</span></li>`,
+      );
+    });
+    lines.push("</ul>");
   }
-  summaryDiv.innerHTML = lines.join("<br>");
+  summaryDiv.innerHTML = lines.join("");
 }
 
 async function loadAdminBookings() {
