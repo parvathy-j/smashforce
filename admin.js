@@ -8,10 +8,11 @@ function showBookingDetailsModal(dateStr) {
   modalDateLabel.textContent = dateStr;
   // Filter bookings for this date
   const bookings = (lastLoadedBookings || []).filter(
-    (b) => b.bookingDate === dateStr
+    (b) => b.bookingDate === dateStr,
   );
   if (!bookings.length) {
-    modalBookingList.innerHTML = '<div style="color:#888;">No bookings for this date.</div>';
+    modalBookingList.innerHTML =
+      '<div style="color:#888;">No bookings for this date.</div>';
   } else {
     modalBookingList.innerHTML = bookings
       .map(
@@ -23,7 +24,7 @@ function showBookingDetailsModal(dateStr) {
             <span>${b.bookingTime || "-"}</span>
             ${b.phone ? `<br><span>Phone: ${b.phone}</span>` : ""}
             ${b.email ? `<br><span>Email: ${b.email}</span>` : ""}
-          </div>`
+          </div>`,
       )
       .join("");
   }
@@ -337,19 +338,19 @@ async function loadAdminBookings() {
     lastLoadedBookings = data.bookings || [];
     renderBookingRows(lastLoadedBookings);
     renderBookedSummary(lastLoadedBookings);
-  // ...existing code...
-  // --- Calendar Day Click Handler for Modal ---
-  document.addEventListener("DOMContentLoaded", function () {
-    const calendar = document.getElementById("adminCalendarContainer");
-    if (calendar) {
-      calendar.addEventListener("click", function (e) {
-        const day = e.target.closest(".cal-day");
-        if (day && day.dataset && day.dataset.date) {
-          showBookingDetailsModal(day.dataset.date);
-        }
-      });
-    }
-  });
+    // ...existing code...
+    // --- Calendar Day Click Handler for Modal ---
+    document.addEventListener("DOMContentLoaded", function () {
+      const calendar = document.getElementById("adminCalendarContainer");
+      if (calendar) {
+        calendar.addEventListener("click", function (e) {
+          const day = e.target.closest(".cal-day");
+          if (day && day.dataset && day.dataset.date) {
+            showBookingDetailsModal(day.dataset.date);
+          }
+        });
+      }
+    });
   } catch (err) {
     console.error("[Admin Calendar] Network or unknown error:", err);
     setStatus(err.message || "Failed to load bookings.");

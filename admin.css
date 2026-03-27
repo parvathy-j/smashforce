@@ -8,7 +8,7 @@
   width: 100vw;
   height: 100vh;
   overflow: auto;
-  background: rgba(0,0,0,0.25);
+  background: rgba(0, 0, 0, 0.25);
   justify-content: center;
   align-items: center;
 }
@@ -18,7 +18,7 @@
   padding: 2rem 2.5rem;
   border-radius: 12px;
   max-width: 480px;
-  box-shadow: 0 2px 16px 0 rgba(60,72,88,0.18);
+  box-shadow: 0 2px 16px 0 rgba(60, 72, 88, 0.18);
   position: relative;
 }
 .modal-content h3 {
@@ -59,10 +59,12 @@
 #adminCalendarContainer {
   background: #fff;
   border-radius: 16px;
-  box-shadow: 0 2px 12px 0 rgba(60,72,88,0.10), 0 1.5px 4px 0 rgba(60,72,88,0.08);
+  box-shadow:
+    0 2px 12px 0 rgba(60, 72, 88, 0.1),
+    0 1.5px 4px 0 rgba(60, 72, 88, 0.08);
   padding: 2rem 2.5rem 1.5rem 2.5rem;
   margin-bottom: 2rem;
-  font-family: 'Outfit', 'Barlow Condensed', Arial, sans-serif;
+  font-family: "Outfit", "Barlow Condensed", Arial, sans-serif;
   max-width: 900px;
   margin-left: auto;
   margin-right: auto;
@@ -131,14 +133,17 @@
   color: #2d3748;
   cursor: pointer;
   border: 1.5px solid transparent;
-  transition: box-shadow 0.15s, border 0.15s, background 0.15s;
+  transition:
+    box-shadow 0.15s,
+    border 0.15s,
+    background 0.15s;
   position: relative;
 }
 #adminCalendarContainer .cal-day.selected {
   border: 2px solid #2563eb;
   background: #e0e7ff;
   color: #1e40af;
-  box-shadow: 0 2px 8px 0 rgba(37,99,235,0.08);
+  box-shadow: 0 2px 8px 0 rgba(37, 99, 235, 0.08);
 }
 #adminCalendarContainer .cal-day.today {
   border: 2px solid #38b2ac;
@@ -162,7 +167,7 @@
   position: absolute;
   left: 8px;
   top: 8px;
-  box-shadow: 0 1px 3px 0 rgba(37,99,235,0.10);
+  box-shadow: 0 1px 3px 0 rgba(37, 99, 235, 0.1);
 }
 #adminCalendarContainer .cal-day .booking-dot.paid {
   background: #38b2ac;
