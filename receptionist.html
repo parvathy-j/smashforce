@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Receptionist Dashboard</title>
+    <link rel="stylesheet" href="index.css" />
+    <style>
+      .dashboard-section {
+        margin-bottom: 2rem;
+      }
+      .dashboard-section h2 {
+        margin-bottom: 0.5rem;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 1rem;
+      }
+      th,
+      td {
+        border: 1px solid #ccc;
+        padding: 0.5rem;
+        text-align: left;
+      }
+      th {
+        background: #f0f0f0;
+      }
+      .form-row {
+        margin-bottom: 0.5rem;
+      }
+      .form-row label {
+        display: inline-block;
+        width: 120px;
+      }
+      .form-row input,
+      .form-row select {
+        width: 200px;
+      }
+      .btn {
+        padding: 0.4rem 1rem;
+        margin-top: 0.5rem;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Receptionist/Admin Dashboard</h1>
+
+    <div class="dashboard-section">
+      <h2>Calendar (Bookings by Date)</h2>
+      <input type="date" id="calendarDate" />
+      <button class="btn" onclick="loadBookings()">View Bookings</button>
+      <table id="bookingsTable">
+        <thead>
+          <tr>
+            <th>Time</th>
+            <th>Facility</th>
+            <th>Court/Table</th>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Phone</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <div class="dashboard-section">
+      <h2>Add Booking</h2>
+      <form id="addBookingForm" onsubmit="return addBooking(event);">
+        <div class="form-row">
+          <label>Date:</label><input type="date" id="bookingDate" required />
+        </div>
+        <div class="form-row">
+          <label>Time:</label><input type="time" id="bookingTime" required />
+        </div>
+        <div class="form-row">
+          <label>Facility:</label
+          ><input type="text" id="bookingFacility" required />
+        </div>
+        <div class="form-row">
+          <label>Court/Table:</label
+          ><input type="text" id="bookingCourt" required />
+        </div>
+        <div class="form-row">
+          <label>Name:</label><input type="text" id="bookingName" required />
+        </div>
+        <div class="form-row">
+          <label>Email:</label><input type="email" id="bookingEmail" required />
+        </div>
+        <div class="form-row">
+          <label>Phone:</label><input type="tel" id="bookingPhone" required />
+        </div>
+        <button class="btn" type="submit">Add Booking</button>
+      </form>
+    </div>
+
+    <div class="dashboard-section">
+      <h2>Members</h2>
+      <table id="membersTable">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Membership Type</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+      <h3>Add Member</h3>
+      <form id="addMemberForm" onsubmit="return addMember(event);">
+        <div class="form-row">
+          <label>Name:</label><input type="text" id="memberName" required />
+        </div>
+        <div class="form-row">
+          <label>Email:</label><input type="email" id="memberEmail" required />
+        </div>
+        <div class="form-row">
+          <label>Membership:</label>
+          <select id="memberType" required>
+            <option value="court">Court</option>
+            <option value="all-access">All Access</option>
+          </select>
+        </div>
+        <button class="btn" type="submit">Add Member</button>
+      </form>
+    </div>
+
+    <!-- Placeholder for Salesforce sync status/messages -->
+    <div class="dashboard-section">
+      <h2>Salesforce Sync</h2>
+      <button class="btn" onclick="syncSalesforce()">
+        Sync with Salesforce
+      </button>
+      <div id="salesforceStatus" style="margin-top: 0.5rem"></div>
+    </div>
+
+    <script>
+      // --- Real API calls ---
+
+      async function syncSalesforce() {
+        const statusDiv = document.getElementById("salesforceStatus");
+        statusDiv.textContent = "Syncing with Salesforce...";
+        try {
+          // Placeholder: Replace with real API call to backend for Salesforce sync
+          // Example:
+          // const res = await fetch('/api/salesforce/sync', { method: 'POST' });
+          // if (!res.ok) throw new Error('Sync failed');
+          // const result = await res.json();
+          // statusDiv.textContent = 'Sync complete: ' + (result.message || 'Success');
+          await new Promise((r) => setTimeout(r, 1500));
+          statusDiv.textContent =
+            "Sync complete (placeholder, connect to backend for real sync).";
+        } catch (err) {
+          statusDiv.textContent = "Salesforce sync error: " + err.message;
+        }
+      }
+      async function loadBookings() {
+        const date = document.getElementById("calendarDate").value;
+        const tbody = document
+          .getElementById("bookingsTable")
+          .querySelector("tbody");
+        tbody.innerHTML = '<tr><td colspan="6">Loading...</td></tr>';
+        try {
+          const res = await fetch(
+            `/api/bookings?date=${encodeURIComponent(date)}`,
+          );
+          if (!res.ok) throw new Error("Failed to fetch bookings");
+          const bookings = await res.json();
+          if (!Array.isArray(bookings) || bookings.length === 0) {
+            tbody.innerHTML =
+              '<tr><td colspan="6">No bookings found.</td></tr>';
+            return;
+          }
+          tbody.innerHTML = bookings
+            .map(
+              (b) =>
+                `<tr><td>${b.time || ""}</td><td>${b.facility || ""}</td><td>${b.court || ""}</td><td>${b.name || ""}</td><td>${b.email || ""}</td><td>${b.phone || ""}</td></tr>`,
+            )
+            .join("");
+        } catch (err) {
+          tbody.innerHTML = `<tr><td colspan="6">Error: ${err.message}</td></tr>`;
+        }
+      }
+
+      async function addBooking(e) {
+        e.preventDefault();
+        const booking = {
+          date: document.getElementById("bookingDate").value,
+          time: document.getElementById("bookingTime").value,
+          facility: document.getElementById("bookingFacility").value,
+          court: document.getElementById("bookingCourt").value,
+          name: document.getElementById("bookingName").value,
+          email: document.getElementById("bookingEmail").value,
+          phone: document.getElementById("bookingPhone").value,
+        };
+        try {
+          const res = await fetch("/api/bookings", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(booking),
+          });
+          if (!res.ok) throw new Error("Failed to add booking");
+          document.getElementById("addBookingForm").reset();
+          loadBookings();
+          alert("Booking added successfully!");
+        } catch (err) {
+          alert("Error adding booking: " + err.message);
+        }
+        return false;
+      }
+
+      async function loadMembers() {
+        const tbody = document
+          .getElementById("membersTable")
+          .querySelector("tbody");
+        tbody.innerHTML = '<tr><td colspan="3">Loading...</td></tr>';
+        try {
+          const res = await fetch("/api/members");
+          if (!res.ok) throw new Error("Failed to fetch members");
+          const members = await res.json();
+          if (!Array.isArray(members) || members.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="3">No members found.</td></tr>';
+            return;
+          }
+          tbody.innerHTML = members
+            .map(
+              (m) =>
+                `<tr><td>${m.name || ""}</td><td>${m.email || ""}</td><td>${m.membership || ""}</td></tr>`,
+            )
+            .join("");
+        } catch (err) {
+          tbody.innerHTML = `<tr><td colspan="3">Error: ${err.message}</td></tr>`;
+        }
+      }
+
+      async function addMember(e) {
+        e.preventDefault();
+        const member = {
+          name: document.getElementById("memberName").value,
+          email: document.getElementById("memberEmail").value,
+          membership: document.getElementById("memberType").value,
+        };
+        try {
+          const res = await fetch("/api/members", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(member),
+          });
+          if (!res.ok) throw new Error("Failed to add member");
+          document.getElementById("addMemberForm").reset();
+          loadMembers();
+          alert("Member added successfully!");
+        } catch (err) {
+          alert("Error adding member: " + err.message);
+        }
+        return false;
+      }
+
+      // Initial load
+      window.addEventListener("DOMContentLoaded", () => {
+        loadMembers();
+        // Optionally, load today's bookings
+        const today = new Date().toISOString().slice(0, 10);
+        document.getElementById("calendarDate").value = today;
+        loadBookings();
+      });
+    </script>
+  </body>
+</html>
