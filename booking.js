@@ -9,10 +9,6 @@ window.step3Next = step3Next;
 window.goStep = goStep;
 window.maybeGoStep = maybeGoStep;
 //
-//  STRIPE SETUP
-//   Replace 'pk_test_...' with your actual publishable key
-//   The backend endpoint /create-checkout-session must be available
-//
 const STRIPE_PK =
   window.__SFA_CONFIG__?.STRIPE_PUBLISHABLE_KEY ||
   "pk_test_YOUR_PUBLISHABLE_KEY_HERE";
