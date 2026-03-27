@@ -1128,3 +1128,13 @@ updateSummary();
 renderAuthState();
 fetchCurrentUser();
 handleCheckoutReturn();
+
+// Expose promo code functions globally for HTML event handlers
+if (typeof window !== "undefined") {
+  window.applyPromoCode =
+    typeof applyPromoCode !== "undefined" ? applyPromoCode : undefined;
+  window.handlePromoInputChange =
+    typeof handlePromoInputChange !== "undefined"
+      ? handlePromoInputChange
+      : undefined;
+}
