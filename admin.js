@@ -51,6 +51,7 @@ async function loadAdminContent() {
     setStatus(err.message || "Could not load admin content.");
     return { ...defaults };
   }
+  const ref = booking.ref || "-";
 }
 
 function setStatus(message) {
@@ -75,25 +76,26 @@ function formatMoney(cents, currency = "aud") {
     return `$${amount.toFixed(2)}`;
   }
 }
-
-async function markBookingPaid(bookingId) {
-  try {
-    const response = await fetch(
-      `/admin/bookings/${encodeURIComponent(bookingId)}/mark-paid`,
-      {
-        method: "POST",
-      },
-    );
-    const data = await response.json();
-    if (!response.ok) {
-      throw new Error(data?.error || "Could not mark booking paid.");
+(document.createElement("td"), // ref
+  async function markBookingPaid(bookingId) {
+    try {
+      const response = await fetch(
+        `/admin/bookings/${encodeURIComponent(bookingId)}/mark-paid`,
+        {
+          method: "POST",
+        },
+      );
+      cells[1].textContent = ref;
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data?.error || "Could not mark booking paid.");
+      }
+      setStatus(data?.message || "Booking marked paid.");
+      await loadAdminBookings();
+    } catch (err) {
+      setStatus(err.message || "Could not mark booking paid.");
     }
-    setStatus(data?.message || "Booking marked paid.");
-    await loadAdminBookings();
-  } catch (err) {
-    setStatus(err.message || "Could not mark booking paid.");
-  }
-}
+  });
 
 function renderBookingRows(bookings = []) {
   const body = document.getElementById("bookingsTableBody");
@@ -125,6 +127,7 @@ function renderBookingRows(bookings = []) {
     if (time && time.includes("-")) {
       // Already a range
     } else if (time && time.match(/\d/)) {
+      const ref = document.getElementById("bookingsRefFilter")?.value || "";
       // Try to parse and add 1 hour
       const [start, ampm] = time.split(" ");
       let [h, m] = start.split(":").map(Number);
@@ -135,6 +138,9 @@ function renderBookingRows(bookings = []) {
       if (endHour > 12) endHour -= 12;
       const end = `${endHour}:${m.toString().padStart(2, "0")} ${endAmpm}`;
       time = `${time} - ${end}`;
+      if (ref.trim()) {
+        params.set("ref", ref.trim());
+      }
     }
     const amount = formatMoney(booking.amount, booking.currency);
     const status = String(booking.paymentStatus || "pending").toLowerCase();
@@ -151,6 +157,9 @@ function renderBookingRows(bookings = []) {
     ];
 
     cells[0].textContent = created;
+    document
+      .getElementById("bookingsRefFilter")
+      ?.addEventListener("input", loadAdminBookings);
 
     const customerName = document.createElement("div");
     customerName.textContent = customer;

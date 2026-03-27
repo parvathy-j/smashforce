@@ -23,6 +23,7 @@ CREATE INDEX idx_sessions_user_id ON sessions (user_id);
 
 CREATE TABLE IF NOT EXISTS bookings (
   id VARCHAR(64) PRIMARY KEY,
+  ref VARCHAR(32) NOT NULL UNIQUE,
   user_id VARCHAR(64) NULL,
   customer_name VARCHAR(255) NOT NULL,
   customer_email VARCHAR(255) NOT NULL,

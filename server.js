@@ -803,9 +803,16 @@ function dbAll(sql, params = []) {
 async function insertBooking(booking) {
   const nowIso = new Date().toISOString();
   const id = crypto.randomUUID();
+  // Generate a unique booking reference (e.g., SFA-XXXXXX)
+  const ref =
+    booking.ref ||
+    (booking.checkoutSessionId
+      ? `SFA-${booking.checkoutSessionId.slice(-8).toUpperCase()}`
+      : `SFA-${Math.random().toString(36).substr(2, 6).toUpperCase()}`);
   await dbRun(
     `INSERT INTO bookings (
       id,
+      ref,
       user_id,
       customer_name,
       customer_email,
@@ -825,9 +832,10 @@ async function insertBooking(booking) {
       source,
       created_at,
       updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       id,
+      ref,
       booking.userId || null,
       booking.name || "",
       booking.email || "",
@@ -1046,6 +1054,11 @@ async function listBookings(filters = {}) {
     params.push(`%${String(filters.email).toLowerCase()}%`);
   }
 
+  if (filters.ref && String(filters.ref).trim() !== "") {
+    where.push("b.ref LIKE ?");
+    params.push(`%${String(filters.ref).toUpperCase()}%`);
+  }
+
   let limit = Number(filters.limit);
   if (!Number.isFinite(limit) || limit < 1 || limit > 500) {
     limit = 100;
@@ -1054,6 +1067,7 @@ async function listBookings(filters = {}) {
 
   const sql = `SELECT
     b.id,
+    b.ref,
     b.user_id AS userId,
     b.customer_name AS customerName,
     b.customer_email AS customerEmail,
@@ -1115,6 +1129,7 @@ async function listBookings(filters = {}) {
 
       return fallbackRows.map((row) => ({
         id: row.id,
+        ref: row.ref || "",
         userId: null,
         customerName: row.customerName,
         customerEmail: row.customerEmail,
@@ -1142,6 +1157,7 @@ async function listBookings(filters = {}) {
       const genericRows = await dbAll(genericSql);
       return genericRows.map((row) => ({
         id: row.id || row.booking_id || "",
+        ref: row.ref || "",
         userId: row.user_id || row.userId || null,
         customerName: row.customer_name || row.customerName || "",
         customerEmail: row.customer_email || row.customerEmail || "",
@@ -1441,6 +1457,7 @@ async function initSqliteDatabase() {
   await dbRun(`
     CREATE TABLE IF NOT EXISTS bookings (
       id TEXT PRIMARY KEY,
+      ref TEXT NOT NULL UNIQUE,
       user_id TEXT,
       customer_name TEXT NOT NULL,
       customer_email TEXT NOT NULL,
@@ -1555,6 +1572,7 @@ async function initPostgresDatabase() {
   await dbRun(`
     CREATE TABLE IF NOT EXISTS bookings (
       id TEXT PRIMARY KEY,
+      ref TEXT NOT NULL UNIQUE,
       user_id TEXT REFERENCES users(id) ON DELETE SET NULL,
       customer_name TEXT NOT NULL,
       customer_email TEXT NOT NULL,
@@ -1683,6 +1701,7 @@ async function initMysqlDatabase() {
   await dbRun(`
     CREATE TABLE IF NOT EXISTS bookings (
       id VARCHAR(191) PRIMARY KEY,
+      ref VARCHAR(32) NOT NULL UNIQUE,
       user_id VARCHAR(191) NULL,
       customer_name VARCHAR(255) NOT NULL,
       customer_email VARCHAR(255) NOT NULL,
@@ -2262,14 +2281,18 @@ app.get("/my-bookings", requireAuth, async (req, res) => {
 
 app.get("/admin/bookings", requireAdmin, async (req, res) => {
   try {
-    const bookings = await listBookings({
+    const filters = {
       status: String(req.query.status || "")
         .trim()
         .toLowerCase(),
       date: String(req.query.date || "").trim(),
       email: String(req.query.email || "").trim(),
       limit: req.query.limit,
-    });
+    };
+    if (req.query.ref) {
+      filters.ref = String(req.query.ref).trim();
+    }
+    const bookings = await listBookings(filters);
     return res.json({ bookings });
   } catch (err) {
     console.error("Admin bookings error:", err.message);
