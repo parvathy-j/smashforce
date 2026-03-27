@@ -630,15 +630,85 @@ applyAuthResetFromQuery();
 
 // Membership CTAs open the auth modal (login tab) for both buttons.
 document.querySelectorAll("#membership .btn-m").forEach((btn) => {
-  btn.addEventListener("click", (event) => {
+  btn.addEventListener("click", async (event) => {
     event.preventDefault();
     event.stopPropagation();
-
-    openAuthModal("login");
-
+    const membershipType = btn.dataset.membership || "";
+    // If logged in, go straight to checkout
+    if (authState && authState.user) {
+      try {
+        const checkoutRes = await fetch("/create-membership-checkout-session", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ membershipType }),
+        });
+        const checkoutData = await readJsonResponse(checkoutRes);
+        if (!checkoutRes.ok || !checkoutData?.url) {
+          showToast(
+            checkoutData?.error || "Could not start membership checkout.",
+          );
+          return;
+        }
+        window.location.href = checkoutData.url;
+        return;
+      } catch (err) {
+        showToast(err.message || "Could not start membership checkout.");
+        return;
+      }
+    }
+    // Not logged in: store intent and open signup
+    sessionStorage.setItem("pending_membership_type", membershipType);
+    openAuthModal("signup");
     const membershipSelect = document.getElementById("signupMembershipType");
     if (membershipSelect) {
-      membershipSelect.value = btn.dataset.membership || "";
+      membershipSelect.value = membershipType;
     }
   });
+});
+
+// Signup form: after signup, redirect to checkout if needed
+const signupForm = document.getElementById("signupForm");
+signupForm?.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const membershipType = document.getElementById("signupMembershipType").value;
+  const signupResult = await submitAuth(
+    "/signup",
+    {
+      name: document.getElementById("signupName").value.trim(),
+      email: document.getElementById("signupEmail").value.trim(),
+      membershipType,
+      password: document.getElementById("signupPassword").value,
+    },
+    membershipType
+      ? "Account created. Redirecting to payment..."
+      : "Account created successfully.",
+    { autoClose: !membershipType },
+  );
+
+  // After signup, if user intended to buy membership, redirect to checkout
+  const pendingMembership = sessionStorage.getItem("pending_membership_type");
+  if (
+    signupResult &&
+    pendingMembership &&
+    pendingMembership === membershipType
+  ) {
+    try {
+      const checkoutRes = await fetch("/create-membership-checkout-session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ membershipType }),
+      });
+      const checkoutData = await readJsonResponse(checkoutRes);
+      if (!checkoutRes.ok || !checkoutData?.url) {
+        showToast(
+          checkoutData?.error || "Could not start membership checkout.",
+        );
+      } else {
+        sessionStorage.removeItem("pending_membership_type");
+        window.location.href = checkoutData.url;
+      }
+    } catch (err) {
+      showToast(err.message || "Could not start membership checkout.");
+    }
+  }
 });
