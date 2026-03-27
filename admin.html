@@ -10,16 +10,25 @@
       rel="stylesheet"
     />
     <link rel="stylesheet" href="admin.css" />
-  </head>
-  <body>
     <main class="admin-wrap">
-      <section class="card" style="margin-bottom:2rem;">
-        <h2>Calendar (Bookings by Month)</h2>
-    <main class="admin-wrap">
-      <section class="card" style="margin-bottom:2rem;">
-        <h2>Calendar (Bookings by Month)</h2>
+      <header class="admin-head">
+        <div>
+          <p class="eyebrow">Smashforce Badminton Centre</p>
+          <h1>Admin Dashboard</h1>
+        </div>
+        <div class="quick-links">
+          <span id="adminSessionLabel">Checking session…</span>
+          <button id="adminLogoutBtn">Logout</button>
+          <a href="booking.html" target="_blank">Bookings</a>
+          <a href="receptionist.html" target="_blank">Reception</a>
+        </div>
+      </header>
+
+      <!-- CALENDAR -->
+      <section class="card">
+        <h2>📅 Calendar</h2>
         <div id="adminCalendarContainer"></div>
-        <div style="margin-top:1rem;">
+        <div class="table-container">
           <table id="adminCalendarBookingsTable">
             <thead>
               <tr>
@@ -35,264 +44,103 @@
           </table>
         </div>
       </section>
-    <!-- Booking Details Modal -->
-    <div id="bookingDetailsModal" class="modal" style="display:none;">
-      <div class="modal-content">
-        <span class="close" id="closeBookingDetails">&times;</span>
-        <h3>Bookings for <span id="modalDateLabel"></span></h3>
-        <div id="modalBookingList"></div>
-      </div>
-    </div>
 
-      <header class="admin-head">
-        <div>
-          <p class="eyebrow">Smashforce Badminton Centre</p>
-          <h1>Website Admin Panel</h1>
-          <p class="sub"></p>
-        </div>
-        <div class="quick-links">
-          <span id="adminSessionLabel">Checking session…</span>
-          <button id="adminLogoutBtn" type="button">Logout</button>
-          <a href="smash-force-academy.html" target="_blank">Open Website</a>
-          <a href="booking.html" target="_blank">Open Booking</a>
-          <a href="receptionist.html" target="_blank">Receptionist Dashboard</a>
-        </div>
-      </header>
-        <div class="bookings-head">
-          <h2>Recent Bookings</h2>
-          <button id="refreshBookingsBtn" class="btn" type="button">
-            Refresh
-          </button>
-          <button
-            id="reconcileBookingsBtn"
-            class="btn"
-            type="button"
-            style="margin-left: 1em"
-          >
-            Reconcile
-          </button>
+      <!-- BOOKINGS -->
+      <section class="card">
+        <div class="section-head">
+          <h2>📋 Recent Bookings</h2>
+          <div>
+            <button id="refreshBookingsBtn" class="btn">Refresh</button>
+            <button id="reconcileBookingsBtn" class="btn">Reconcile</button>
+          </div>
         </div>
 
-        <div class="bookings-filters">
-          <label>
-            Date
-            <input id="bookingsDateFilter" type="date" />
-          </label>
-          <label>
-            Status
-            <select id="bookingsStatusFilter">
-              <option value="">All</option>
-              <option value="pending">Pending</option>
-              <option value="pending_in_person">Pending In Person</option>
-              <option value="paid">Paid</option>
-              <option value="expired">Expired</option>
-              <option value="failed">Failed</option>
-            </select>
-          </label>
-          <label>
-            Email
-            <input
-              id="bookingsEmailFilter"
-              type="text"
-              placeholder="Search email"
-            />
-          </label>
+        <!-- FILTERS -->
+        <div class="filters">
+          <input id="bookingsDateFilter" type="date" />
+          <select id="bookingsStatusFilter">
+            <option value="">All Status</option>
+            <option value="pending">Pending</option>
+            <option value="pending_in_person">Pending In Person</option>
+            <option value="paid">Paid</option>
+            <option value="expired">Expired</option>
+            <option value="failed">Failed</option>
+          </select>
+          <input id="bookingsEmailFilter" placeholder="Search email" />
         </div>
 
-        <!-- Booked Courts/Tables Summary -->
-        <div id="bookedSummary" class="summary-box booked-summary">
-          <strong>Booked Courts/Tables for selected date:</strong>
-          <div id="bookedSummaryContent" style="margin-top: 0.5em"></div>
+        <!-- SUMMARY -->
+        <div id="bookedSummary" class="summary-box">
+          <strong>Booked Courts:</strong>
+          <div id="bookedSummaryContent"></div>
         </div>
 
-        <div class="bookings-table-wrap">
+        <!-- TABLE -->
+        <div class="table-container">
           <table class="bookings-table">
             <thead>
               <tr>
                 <th>Created</th>
-                <th>Reference</th>
+                <th>Ref</th>
                 <th>Customer</th>
                 <th>Facility</th>
                 <th>Date</th>
                 <th>Time</th>
                 <th>Amount</th>
                 <th>Status</th>
-                <th>Actions</th>
+                <th></th>
               </tr>
             </thead>
             <tbody id="bookingsTableBody">
               <tr>
-                <td colspan="8">Loading bookings...</td>
+                <td colspan="9">Loading...</td>
               </tr>
             </tbody>
           </table>
         </div>
-        <div class="bookings-filters">
-          <label style="display: flex; align-items: center; gap: 0.5em">
-            Reference
-            <input
-              id="bookingsRefFilter"
-              type="text"
-              placeholder="Search ref"
-              style="flex: 1"
-            />
-            <button
-              id="bookingsRefSearchBtn"
-              type="button"
-              class="btn"
-              style="margin-left: 0.5em"
-            >
-              Search
-            </button>
-          </label>
+
+        <!-- SEARCH -->
+        <div class="filters">
+          <input id="bookingsRefFilter" placeholder="Search reference" />
+          <button id="bookingsRefSearchBtn" class="btn">Search</button>
         </div>
       </section>
 
+      <!-- MEMBERSHIP -->
       <section class="card">
-        <h2>Membership Lookup</h2>
-        <form
-          id="membershipLookupForm"
-          style="
-            display: flex;
-            gap: 1em;
-            align-items: flex-end;
-            flex-wrap: wrap;
-          "
-        >
-          <label>
-            Email
-            <input
-              id="membershipLookupEmail"
-              type="email"
-              placeholder="Enter customer email"
-              required
-              style="min-width: 220px"
-            />
-          </label>
-          <button type="submit" class="btn">Check Membership</button>
+        <h2>👤 Membership Lookup</h2>
+        <form id="membershipLookupForm" class="inline-form">
+          <input
+            id="membershipLookupEmail"
+            type="email"
+            placeholder="Enter email"
+            required
+          />
+          <button class="btn">Check</button>
         </form>
-        <div
-          id="membershipLookupResult"
-          style="margin-top: 0.5em; font-weight: 500"
-        ></div>
+        <div id="membershipLookupResult"></div>
       </section>
 
+      <!-- ACTIONS -->
       <footer class="actions">
-            <section class="card">
-              <h2>Calendar (Bookings by Date)</h2>
-              <input type="date" id="adminCalendarDate" />
-              <button class="btn" type="button" onclick="loadAdminCalendarBookings()">View Bookings</button>
-              <table id="adminCalendarBookingsTable">
-                <thead>
-                  <tr>
-                    <th>Time</th>
-                    <th>Facility</th>
-                    <th>Court/Table</th>
-                    <th>Name</th>
-                    <th>Email</th>
-                    <th>Phone</th>
-                  </tr>
-                </thead>
-                <tbody></tbody>
-              </table>
-            </section>
-        <button id="saveBtn" class="btn primary" type="button">
-          Save Changes
-        </button>
-        <button id="resetBtn" class="btn" type="button">
-          Reset to Defaults
-        </button>
-        <span id="statusText" class="status"></span>
+        <button id="saveBtn" class="btn primary">Save Changes</button>
+        <button id="resetBtn" class="btn">Reset</button>
+        <span id="statusText"></span>
       </footer>
+
+      <!-- Booking Details Modal -->
+      <div id="bookingDetailsModal" class="modal">
+        <div class="modal-content">
+          <span class="close" id="closeBookingDetails">&times;</span>
+          <h3>Bookings for <span id="modalDateLabel"></span></h3>
+          <div id="modalBookingList"></div>
+        </div>
+      </div>
     </main>
 
     <script src="admin.js"></script>
-          <script>
-            // Simple calendar rendering for admin panel (month view)
-            const MONTHS = [
-              "January", "February", "March", "April", "May", "June",
-              "July", "August", "September", "October", "November", "December"
-            ];
-            let adminCalDate = new Date();
-            function renderAdminCalendar() {
-              const container = document.getElementById('adminCalendarContainer');
-              if (!container) return;
-              const year = adminCalDate.getFullYear();
-              const month = adminCalDate.getMonth();
-              const firstDay = new Date(year, month, 1).getDay();
-              const daysInMonth = new Date(year, month + 1, 0).getDate();
-              let html = `<div style="display:flex;align-items:center;gap:1em;justify-content:center;">
-                <button onclick="adminChangeMonth(-1)">&lt;</button>
-                <span style="font-weight:bold;">${MONTHS[month]} ${year}</span>
-                <button onclick="adminChangeMonth(1)">&gt;</button>
-              </div>`;
-              html += '<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-top:0.5em;">';
-              ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].forEach(d=>{
-                html += `<div style="font-weight:bold;text-align:center;">${d}</div>`;
-              });
-              let day = 1;
-              for(let i=0;i<6*7;i++){
-                if(i<firstDay||day>daysInMonth){
-                  html+='<div></div>';
-                }else{
-                  html+=`<div style="text-align:center;cursor:pointer;padding:0.3em;border-radius:4px;" onclick="adminSelectCalDate(${year},${month},${day},this)">${day}</div>`;
-                  day++;
-                }
-              }
-              html+='</div>';
-              container.innerHTML = html;
-            }
-            function adminChangeMonth(dir){
-              adminCalDate.setMonth(adminCalDate.getMonth()+dir);
-              renderAdminCalendar();
-            }
-            function adminSelectCalDate(y,m,d,el){
-              document.querySelectorAll('#adminCalendarContainer div.selected').forEach(e=>e.classList.remove('selected'));
-              el.classList.add('selected');
-              const dateStr = `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-              loadAdminCalendarBookings(dateStr);
-            }
-            async function loadAdminCalendarBookings(dateStr){
-              const tbody = document.getElementById('adminCalendarBookingsTable').querySelector('tbody');
-              tbody.innerHTML = '<tr><td colspan="6">Loading...</td></tr>';
-              try{
-                const res = await fetch(`/api/bookings?date=${encodeURIComponent(dateStr)}`);
-                if(!res.ok) throw new Error('Failed to fetch bookings');
-                const bookings = await res.json();
-                if(!Array.isArray(bookings)||bookings.length===0){
-                  tbody.innerHTML = '<tr><td colspan="6">No bookings found.</td></tr>';
-                  return;
-                }
-                tbody.innerHTML = bookings.map(b=>
-                  `<tr><td>${b.time||''}</td><td>${b.facility||''}</td><td>${b.court||''}</td><td>${b.name||''}</td><td>${b.email||''}</td><td>${b.phone||''}</td></tr>`
-                ).join('');
-              }catch(err){
-                tbody.innerHTML = `<tr><td colspan="6">Error: ${err.message}</td></tr>`;
-              }
-            }
-            // Initial render
-            renderAdminCalendar();
-          </script>
-      <script>
-        async function loadAdminCalendarBookings() {
-          const date = document.getElementById('adminCalendarDate').value;
-          const tbody = document.getElementById('adminCalendarBookingsTable').querySelector('tbody');
-          tbody.innerHTML = '<tr><td colspan="6">Loading...</td></tr>';
-          try {
-            const res = await fetch(`/api/bookings?date=${encodeURIComponent(date)}`);
-            if (!res.ok) throw new Error('Failed to fetch bookings');
-            const bookings = await res.json();
-            if (!Array.isArray(bookings) || bookings.length === 0) {
-              tbody.innerHTML = '<tr><td colspan="6">No bookings found.</td></tr>';
-              return;
-            }
-            tbody.innerHTML = bookings.map(b =>
-              `<tr><td>${b.time || ''}</td><td>${b.facility || ''}</td><td>${b.court || ''}</td><td>${b.name || ''}</td><td>${b.email || ''}</td><td>${b.phone || ''}</td></tr>`
-            ).join('');
-          } catch (err) {
-            tbody.innerHTML = `<tr><td colspan="6">Error: ${err.message}</td></tr>`;
-          }
-        }
+  </body>
+</html>
       </script>
   </body>
 </html>
