@@ -100,13 +100,22 @@
           </table>
         </div>
         <div class="bookings-filters">
-          <label>
+          <label style="display: flex; align-items: center; gap: 0.5em">
             Reference
             <input
               id="bookingsRefFilter"
               type="text"
               placeholder="Search ref"
+              style="flex: 1"
             />
+            <button
+              id="bookingsRefSearchBtn"
+              type="button"
+              class="btn"
+              style="margin-left: 0.5em"
+            >
+              Search
+            </button>
           </label>
         </div>
       </section>

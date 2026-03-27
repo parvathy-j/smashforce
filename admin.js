@@ -383,6 +383,23 @@ document
   .getElementById("bookingsEmailFilter")
   ?.addEventListener("input", loadAdminBookings);
 
+// Add search button for Reference filter
+document
+  .getElementById("bookingsRefSearchBtn")
+  ?.addEventListener("click", () => {
+    loadAdminBookings();
+    document.getElementById("bookingsRefFilter")?.focus();
+  });
+
+// Also allow pressing Enter in the Reference field to trigger search
+document
+  .getElementById("bookingsRefFilter")
+  ?.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      loadAdminBookings();
+    }
+  });
+
 // Reconcile button logic
 document
   .getElementById("reconcileBookingsBtn")
