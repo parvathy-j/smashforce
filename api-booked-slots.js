@@ -1,3 +1,4 @@
+const { listBookings } = require("./server");
 // API endpoint to get booked slots for a facility, court, and date
 // GET /api/booked-slots?facility=standard&court=1&date=2026-03-28
 const express = require("express");

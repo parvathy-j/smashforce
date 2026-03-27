@@ -1,3 +1,4 @@
+module.exports.listBookings = listBookings;
 // --- TEST-ONLY ENDPOINTS FOR AUTOMATED TESTING ---
 if (process.env.NODE_ENV !== "production") {
   // Create a test booking
