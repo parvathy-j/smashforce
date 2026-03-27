@@ -1,25 +1,5 @@
 // --- Salesforce Sync Endpoint ---
-const express = require("express");
-const app = (module.exports =
-  require.main === module ? express() : module.exports);
-// ...existing code...
-
-// Salesforce sync endpoint (placeholder)
-app.post("/api/salesforce/sync", async (req, res) => {
-  try {
-    // TODO: Integrate with Salesforce API here
-    // For now, just simulate a delay and return success
-    await new Promise((r) => setTimeout(r, 1500));
-    res.json({
-      message: "Salesforce sync complete (placeholder, implement real sync).",
-    });
-  } catch (err) {
-    res
-      .status(500)
-      .json({ error: "Salesforce sync failed", details: err.message });
-  }
-});
-module.exports.listBookings = listBookings;
+// (See bottom of file for endpoint registration)
 // --- TEST-ONLY ENDPOINTS FOR AUTOMATED TESTING ---
 if (process.env.NODE_ENV !== "production") {
   // Create a test booking
@@ -86,6 +66,22 @@ const path = require("path");
 const { Pool } = require("pg");
 
 const app = express();
+
+// Salesforce sync endpoint (placeholder)
+app.post("/api/salesforce/sync", async (req, res) => {
+  try {
+    // TODO: Integrate with Salesforce API here
+    // For now, just simulate a delay and return success
+    await new Promise((r) => setTimeout(r, 1500));
+    res.json({
+      message: "Salesforce sync complete (placeholder, implement real sync).",
+    });
+  } catch (err) {
+    res
+      .status(500)
+      .json({ error: "Salesforce sync failed", details: err.message });
+  }
+});
 
 const stripe = process.env.STRIPE_SECRET_KEY
   ? Stripe(process.env.STRIPE_SECRET_KEY)
