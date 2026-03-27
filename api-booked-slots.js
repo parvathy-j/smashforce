@@ -19,20 +19,10 @@ router.get("/api/booked-slots", async (req, res) => {
     // Query bookings for this facility/court/date
     const bookings = await listBookings({ facility, court, bookingDate: date });
 
-    // Define all possible 1-hour slots
+    // Define all possible 1-hour slots (morning and evening)
     const ALL_SLOTS = [
-      "6:00 AM",
-      "7:00 AM",
-      "8:00 AM",
-      "9:00 AM",
-      "10:00 AM",
-      "11:00 AM",
-      "5:00 PM",
-      "6:00 PM",
-      "7:00 PM",
-      "8:00 PM",
-      "9:00 PM",
-      "10:00 PM",
+      "6:00 AM", "7:00 AM", "8:00 AM", "9:00 AM", "10:00 AM", "11:00 AM",
+      "5:00 PM", "6:00 PM", "7:00 PM", "8:00 PM", "9:00 PM", "10:00 PM"
     ];
 
     // Helper to parse time string (e.g., "5:00 PM") to minutes since midnight
@@ -57,8 +47,15 @@ router.get("/api/booked-slots", async (req, res) => {
         for (const slot of ALL_SLOTS) {
           const slotStart = parseTime(slot);
           const slotEnd = slotStart + 60;
-          // If slot overlaps with booking range, block it
+          // Block slot if it overlaps any part of the booking (including if booking ends at a half-hour)
           if (slotStart < end && slotEnd > start) blocked.add(slot);
+        }
+        // If booking ends at a half-hour (e.g., 5:30 PM), also block the slot that starts at the previous hour
+        if (end % 60 !== 0) {
+          for (const slot of ALL_SLOTS) {
+            const slotStart = parseTime(slot);
+            if (slotStart + 60 > end && slotStart < end) blocked.add(slot);
+          }
         }
       } else if (ALL_SLOTS.includes(b.bookingTime)) {
         blocked.add(b.bookingTime);
