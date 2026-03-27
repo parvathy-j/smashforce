@@ -151,6 +151,24 @@
       </section>
 
       <footer class="actions">
+            <section class="card">
+              <h2>Calendar (Bookings by Date)</h2>
+              <input type="date" id="adminCalendarDate" />
+              <button class="btn" type="button" onclick="loadAdminCalendarBookings()">View Bookings</button>
+              <table id="adminCalendarBookingsTable">
+                <thead>
+                  <tr>
+                    <th>Time</th>
+                    <th>Facility</th>
+                    <th>Court/Table</th>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Phone</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </section>
         <button id="saveBtn" class="btn primary" type="button">
           Save Changes
         </button>
@@ -162,5 +180,26 @@
     </main>
 
     <script src="admin.js"></script>
+      <script>
+        async function loadAdminCalendarBookings() {
+          const date = document.getElementById('adminCalendarDate').value;
+          const tbody = document.getElementById('adminCalendarBookingsTable').querySelector('tbody');
+          tbody.innerHTML = '<tr><td colspan="6">Loading...</td></tr>';
+          try {
+            const res = await fetch(`/api/bookings?date=${encodeURIComponent(date)}`);
+            if (!res.ok) throw new Error('Failed to fetch bookings');
+            const bookings = await res.json();
+            if (!Array.isArray(bookings) || bookings.length === 0) {
+              tbody.innerHTML = '<tr><td colspan="6">No bookings found.</td></tr>';
+              return;
+            }
+            tbody.innerHTML = bookings.map(b =>
+              `<tr><td>${b.time || ''}</td><td>${b.facility || ''}</td><td>${b.court || ''}</td><td>${b.name || ''}</td><td>${b.email || ''}</td><td>${b.phone || ''}</td></tr>`
+            ).join('');
+          } catch (err) {
+            tbody.innerHTML = `<tr><td colspan="6">Error: ${err.message}</td></tr>`;
+          }
+        }
+      </script>
   </body>
 </html>
