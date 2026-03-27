@@ -1,3 +1,192 @@
+/* Modal for booking details */
+.modal {
+  display: none;
+  position: fixed;
+  z-index: 1000;
+  left: 0;
+  top: 0;
+  width: 100vw;
+  height: 100vh;
+  overflow: auto;
+  background: rgba(0,0,0,0.25);
+  justify-content: center;
+  align-items: center;
+}
+.modal-content {
+  background: #fff;
+  margin: 5% auto;
+  padding: 2rem 2.5rem;
+  border-radius: 12px;
+  max-width: 480px;
+  box-shadow: 0 2px 16px 0 rgba(60,72,88,0.18);
+  position: relative;
+}
+.modal-content h3 {
+  margin-top: 0;
+  font-size: 1.3rem;
+  font-weight: 700;
+}
+.modal-content .close {
+  position: absolute;
+  right: 1.2rem;
+  top: 1.2rem;
+  font-size: 1.5rem;
+  color: #888;
+  cursor: pointer;
+  font-weight: bold;
+}
+#modalBookingList {
+  margin-top: 1.2em;
+}
+#modalBookingList .booking-entry {
+  border-bottom: 1px solid #e2e8f0;
+  padding: 0.7em 0;
+  font-size: 1.05rem;
+}
+#modalBookingList .booking-entry:last-child {
+  border-bottom: none;
+}
+#modalBookingList .booking-customer {
+  font-weight: 600;
+  color: #2563eb;
+}
+#modalBookingList .booking-status {
+  font-size: 0.95em;
+  margin-left: 0.5em;
+  color: #888;
+}
+/* --- HubSpot-style Modern Calendar UI for Admin Panel --- */
+#adminCalendarContainer {
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 2px 12px 0 rgba(60,72,88,0.10), 0 1.5px 4px 0 rgba(60,72,88,0.08);
+  padding: 2rem 2.5rem 1.5rem 2.5rem;
+  margin-bottom: 2rem;
+  font-family: 'Outfit', 'Barlow Condensed', Arial, sans-serif;
+  max-width: 900px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+#adminCalendarContainer .calendar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+}
+
+#adminCalendarContainer .calendar-title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #1a202c;
+  letter-spacing: -1px;
+}
+
+#adminCalendarContainer .calendar-nav {
+  display: flex;
+  gap: 0.5rem;
+}
+
+#adminCalendarContainer .calendar-nav button {
+  background: #f3f6fa;
+  border: none;
+  border-radius: 6px;
+  padding: 0.5em 1.2em;
+  font-size: 1rem;
+  color: #2d3748;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+#adminCalendarContainer .calendar-nav button:hover {
+  background: #e2e8f0;
+}
+
+#adminCalendarContainer .calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0.5rem;
+  background: #f8fafc;
+  border-radius: 10px;
+  padding: 1rem 0.5rem 0.5rem 0.5rem;
+}
+
+#adminCalendarContainer .calendar-day-header {
+  font-weight: 600;
+  color: #718096;
+  text-align: center;
+  font-size: 1.1rem;
+  margin-bottom: 0.5rem;
+}
+
+#adminCalendarContainer .cal-day {
+  background: #fff;
+  border-radius: 8px;
+  min-height: 60px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: flex-start;
+  padding: 0.5em 0.7em 0.3em 0.7em;
+  font-size: 1.1rem;
+  color: #2d3748;
+  cursor: pointer;
+  border: 1.5px solid transparent;
+  transition: box-shadow 0.15s, border 0.15s, background 0.15s;
+  position: relative;
+}
+#adminCalendarContainer .cal-day.selected {
+  border: 2px solid #2563eb;
+  background: #e0e7ff;
+  color: #1e40af;
+  box-shadow: 0 2px 8px 0 rgba(37,99,235,0.08);
+}
+#adminCalendarContainer .cal-day.today {
+  border: 2px solid #38b2ac;
+  background: #e6fffa;
+  color: #234e52;
+}
+#adminCalendarContainer .cal-day:hover {
+  border: 2px solid #a0aec0;
+  background: #f1f5f9;
+}
+#adminCalendarContainer .cal-day .day-num {
+  font-weight: 700;
+  font-size: 1.2rem;
+  margin-bottom: 0.2em;
+}
+#adminCalendarContainer .cal-day .booking-dot {
+  width: 8px;
+  height: 8px;
+  background: #2563eb;
+  border-radius: 50%;
+  position: absolute;
+  left: 8px;
+  top: 8px;
+  box-shadow: 0 1px 3px 0 rgba(37,99,235,0.10);
+}
+#adminCalendarContainer .cal-day .booking-dot.paid {
+  background: #38b2ac;
+}
+#adminCalendarContainer .cal-day .booking-dot.pending {
+  background: #f59e42;
+}
+#adminCalendarContainer .cal-day .booking-dot.failed {
+  background: #e53e3e;
+}
+
+/* Responsive adjustments */
+@media (max-width: 700px) {
+  #adminCalendarContainer {
+    padding: 1rem 0.5rem 1rem 0.5rem;
+    max-width: 100vw;
+  }
+  #adminCalendarContainer .calendar-title {
+    font-size: 1.3rem;
+  }
+  #adminCalendarContainer .calendar-grid {
+    font-size: 0.95rem;
+  }
+}
 /* Strong summary box for booked courts/tables */
 .summary-box,
 .booked-summary {

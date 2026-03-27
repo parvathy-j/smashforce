@@ -15,6 +15,9 @@
     <main class="admin-wrap">
       <section class="card" style="margin-bottom:2rem;">
         <h2>Calendar (Bookings by Month)</h2>
+    <main class="admin-wrap">
+      <section class="card" style="margin-bottom:2rem;">
+        <h2>Calendar (Bookings by Month)</h2>
         <div id="adminCalendarContainer"></div>
         <div style="margin-top:1rem;">
           <table id="adminCalendarBookingsTable">
@@ -32,6 +35,14 @@
           </table>
         </div>
       </section>
+    <!-- Booking Details Modal -->
+    <div id="bookingDetailsModal" class="modal" style="display:none;">
+      <div class="modal-content">
+        <span class="close" id="closeBookingDetails">&times;</span>
+        <h3>Bookings for <span id="modalDateLabel"></span></h3>
+        <div id="modalBookingList"></div>
+      </div>
+    </div>
 
       <header class="admin-head">
         <div>

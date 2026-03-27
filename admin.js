@@ -1,3 +1,44 @@
+// --- Booking Details Modal Logic ---
+let lastLoadedBookings = [];
+
+function showBookingDetailsModal(dateStr) {
+  const modal = document.getElementById("bookingDetailsModal");
+  const modalDateLabel = document.getElementById("modalDateLabel");
+  const modalBookingList = document.getElementById("modalBookingList");
+  modalDateLabel.textContent = dateStr;
+  // Filter bookings for this date
+  const bookings = (lastLoadedBookings || []).filter(
+    (b) => b.bookingDate === dateStr
+  );
+  if (!bookings.length) {
+    modalBookingList.innerHTML = '<div style="color:#888;">No bookings for this date.</div>';
+  } else {
+    modalBookingList.innerHTML = bookings
+      .map(
+        (b) =>
+          `<div class="booking-entry">
+            <span class="booking-customer">${b.customerName || b.customerEmail || "-"}</span>
+            <span class="booking-status">(${b.paymentStatus || "pending"})</span><br>
+            <span>${b.facility || "-"} ${b.court ? `(${b.court})` : ""}</span><br>
+            <span>${b.bookingTime || "-"}</span>
+            ${b.phone ? `<br><span>Phone: ${b.phone}</span>` : ""}
+            ${b.email ? `<br><span>Email: ${b.email}</span>` : ""}
+          </div>`
+      )
+      .join("");
+  }
+  modal.style.display = "flex";
+}
+
+document.getElementById("closeBookingDetails").onclick = function () {
+  document.getElementById("bookingDetailsModal").style.display = "none";
+};
+window.onclick = function (event) {
+  const modal = document.getElementById("bookingDetailsModal");
+  if (event.target === modal) {
+    modal.style.display = "none";
+  }
+};
 // Membership lookup logic
 document
   .getElementById("membershipLookupForm")
@@ -278,13 +319,39 @@ async function loadAdminBookings() {
   try {
     const query = buildBookingsQuery();
     const response = await fetch(`/admin/bookings?${query}`);
-    const data = await response.json().catch(() => ({}));
-    if (!response.ok) {
-      throw new Error(data?.error || "Could not load bookings.");
+    let data;
+    try {
+      data = await response.json();
+    } catch (jsonErr) {
+      console.error("[Admin Calendar] Failed to parse JSON:", jsonErr);
+      setStatus("Server error: Invalid response format.");
+      renderBookedSummary([]);
+      return;
     }
-    renderBookingRows(data.bookings || []);
-    renderBookedSummary(data.bookings || []);
+    if (!response.ok) {
+      console.error("[Admin Calendar] Fetch error:", data?.error, data);
+      setStatus(data?.error || "Could not load bookings.");
+      renderBookedSummary([]);
+      return;
+    }
+    lastLoadedBookings = data.bookings || [];
+    renderBookingRows(lastLoadedBookings);
+    renderBookedSummary(lastLoadedBookings);
+  // ...existing code...
+  // --- Calendar Day Click Handler for Modal ---
+  document.addEventListener("DOMContentLoaded", function () {
+    const calendar = document.getElementById("adminCalendarContainer");
+    if (calendar) {
+      calendar.addEventListener("click", function (e) {
+        const day = e.target.closest(".cal-day");
+        if (day && day.dataset && day.dataset.date) {
+          showBookingDetailsModal(day.dataset.date);
+        }
+      });
+    }
+  });
   } catch (err) {
+    console.error("[Admin Calendar] Network or unknown error:", err);
     setStatus(err.message || "Failed to load bookings.");
     renderBookedSummary([]);
   }
