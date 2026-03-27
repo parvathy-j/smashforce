@@ -13,6 +13,26 @@
   </head>
   <body>
     <main class="admin-wrap">
+      <section class="card" style="margin-bottom:2rem;">
+        <h2>Calendar (Bookings by Month)</h2>
+        <div id="adminCalendarContainer"></div>
+        <div style="margin-top:1rem;">
+          <table id="adminCalendarBookingsTable">
+            <thead>
+              <tr>
+                <th>Time</th>
+                <th>Facility</th>
+                <th>Court/Table</th>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Phone</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+
       <header class="admin-head">
         <div>
           <p class="eyebrow">Smashforce Badminton Centre</p>
@@ -27,10 +47,6 @@
           <a href="receptionist.html" target="_blank">Receptionist Dashboard</a>
         </div>
       </header>
-
-      <!-- Branding, Pricing, and Contact sections removed as per client request -->
-
-      <section class="card bookings-card">
         <div class="bookings-head">
           <h2>Recent Bookings</h2>
           <button id="refreshBookingsBtn" class="btn" type="button">
@@ -180,6 +196,72 @@
     </main>
 
     <script src="admin.js"></script>
+          <script>
+            // Simple calendar rendering for admin panel (month view)
+            const MONTHS = [
+              "January", "February", "March", "April", "May", "June",
+              "July", "August", "September", "October", "November", "December"
+            ];
+            let adminCalDate = new Date();
+            function renderAdminCalendar() {
+              const container = document.getElementById('adminCalendarContainer');
+              if (!container) return;
+              const year = adminCalDate.getFullYear();
+              const month = adminCalDate.getMonth();
+              const firstDay = new Date(year, month, 1).getDay();
+              const daysInMonth = new Date(year, month + 1, 0).getDate();
+              let html = `<div style="display:flex;align-items:center;gap:1em;justify-content:center;">
+                <button onclick="adminChangeMonth(-1)">&lt;</button>
+                <span style="font-weight:bold;">${MONTHS[month]} ${year}</span>
+                <button onclick="adminChangeMonth(1)">&gt;</button>
+              </div>`;
+              html += '<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-top:0.5em;">';
+              ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].forEach(d=>{
+                html += `<div style="font-weight:bold;text-align:center;">${d}</div>`;
+              });
+              let day = 1;
+              for(let i=0;i<6*7;i++){
+                if(i<firstDay||day>daysInMonth){
+                  html+='<div></div>';
+                }else{
+                  html+=`<div style="text-align:center;cursor:pointer;padding:0.3em;border-radius:4px;" onclick="adminSelectCalDate(${year},${month},${day},this)">${day}</div>`;
+                  day++;
+                }
+              }
+              html+='</div>';
+              container.innerHTML = html;
+            }
+            function adminChangeMonth(dir){
+              adminCalDate.setMonth(adminCalDate.getMonth()+dir);
+              renderAdminCalendar();
+            }
+            function adminSelectCalDate(y,m,d,el){
+              document.querySelectorAll('#adminCalendarContainer div.selected').forEach(e=>e.classList.remove('selected'));
+              el.classList.add('selected');
+              const dateStr = `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+              loadAdminCalendarBookings(dateStr);
+            }
+            async function loadAdminCalendarBookings(dateStr){
+              const tbody = document.getElementById('adminCalendarBookingsTable').querySelector('tbody');
+              tbody.innerHTML = '<tr><td colspan="6">Loading...</td></tr>';
+              try{
+                const res = await fetch(`/api/bookings?date=${encodeURIComponent(dateStr)}`);
+                if(!res.ok) throw new Error('Failed to fetch bookings');
+                const bookings = await res.json();
+                if(!Array.isArray(bookings)||bookings.length===0){
+                  tbody.innerHTML = '<tr><td colspan="6">No bookings found.</td></tr>';
+                  return;
+                }
+                tbody.innerHTML = bookings.map(b=>
+                  `<tr><td>${b.time||''}</td><td>${b.facility||''}</td><td>${b.court||''}</td><td>${b.name||''}</td><td>${b.email||''}</td><td>${b.phone||''}</td></tr>`
+                ).join('');
+              }catch(err){
+                tbody.innerHTML = `<tr><td colspan="6">Error: ${err.message}</td></tr>`;
+              }
+            }
+            // Initial render
+            renderAdminCalendar();
+          </script>
       <script>
         async function loadAdminCalendarBookings() {
           const date = document.getElementById('adminCalendarDate').value;
