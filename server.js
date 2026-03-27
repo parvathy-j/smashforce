@@ -1,29 +1,29 @@
 // --- TEST-ONLY ENDPOINTS FOR AUTOMATED TESTING ---
-if (process.env.NODE_ENV !== 'production') {
+if (process.env.NODE_ENV !== "production") {
   // Create a test booking
-  app.post('/api/test-create-booking', express.json(), async (req, res) => {
+  app.post("/api/test-create-booking", express.json(), async (req, res) => {
     try {
       const { facility, court, date, time } = req.body;
       if (!facility || !court || !date || !time) {
-        return res.status(400).json({ error: 'Missing required fields' });
+        return res.status(400).json({ error: "Missing required fields" });
       }
       await insertBooking({
         userId: null,
-        name: 'Test User',
-        email: 'test@example.com',
-        phone: '',
+        name: "Test User",
+        email: "test@example.com",
+        phone: "",
         facility,
         date,
         time,
-        duration: '1',
+        duration: "1",
         court,
-        membershipType: '',
-        appliedMembership: 'none',
+        membershipType: "",
+        appliedMembership: "none",
         amount: 0,
-        currency: 'aud',
-        paymentStatus: 'paid',
-        checkoutSessionId: '',
-        source: 'test',
+        currency: "aud",
+        paymentStatus: "paid",
+        checkoutSessionId: "",
+        source: "test",
       });
       res.json({ ok: true });
     } catch (err) {
@@ -32,11 +32,11 @@ if (process.env.NODE_ENV !== 'production') {
   });
 
   // Delete a test booking
-  app.post('/api/test-delete-booking', express.json(), async (req, res) => {
+  app.post("/api/test-delete-booking", express.json(), async (req, res) => {
     try {
       const { facility, court, date, time } = req.body;
       if (!facility || !court || !date || !time) {
-        return res.status(400).json({ error: 'Missing required fields' });
+        return res.status(400).json({ error: "Missing required fields" });
       }
       // Use direct SQL for deletion
       const sql = `DELETE FROM bookings WHERE facility = ? AND court = ? AND booking_date = ? AND booking_time = ? AND source = 'test'`;

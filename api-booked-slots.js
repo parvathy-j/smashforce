@@ -21,8 +21,18 @@ router.get("/api/booked-slots", async (req, res) => {
 
     // Define all possible 1-hour slots
     const ALL_SLOTS = [
-      "6:00 AM", "7:00 AM", "8:00 AM", "9:00 AM", "10:00 AM", "11:00 AM",
-      "5:00 PM", "6:00 PM", "7:00 PM", "8:00 PM", "9:00 PM", "10:00 PM"
+      "6:00 AM",
+      "7:00 AM",
+      "8:00 AM",
+      "9:00 AM",
+      "10:00 AM",
+      "11:00 AM",
+      "5:00 PM",
+      "6:00 PM",
+      "7:00 PM",
+      "8:00 PM",
+      "9:00 PM",
+      "10:00 PM",
     ];
 
     // Helper to parse time string (e.g., "5:00 PM") to minutes since midnight
@@ -38,7 +48,9 @@ router.get("/api/booked-slots", async (req, res) => {
     const blocked = new Set();
     for (const b of bookings) {
       // If bookingTime is a range (e.g., "8:30 AM - 5:30 PM"), block all overlapping slots
-      const rangeMatch = String(b.bookingTime).match(/([0-9: ]+[AP]M)\s*-\s*([0-9: ]+[AP]M)/);
+      const rangeMatch = String(b.bookingTime).match(
+        /([0-9: ]+[AP]M)\s*-\s*([0-9: ]+[AP]M)/,
+      );
       if (rangeMatch) {
         const start = parseTime(rangeMatch[1]);
         const end = parseTime(rangeMatch[2]);
