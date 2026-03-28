@@ -950,6 +950,51 @@ function dbAll(sql, params = []) {
   });
 }
 
+// ---------------------------------------------------------------------------
+// Conflict check — returns true if any active booking overlaps the requested slot
+// ---------------------------------------------------------------------------
+function parseTimeMins(t) {
+  const parts = String(t || "").trim().match(/^(\d+):(\d+)\s*(AM|PM)$/i);
+  if (!parts) return null;
+  let h = parseInt(parts[1]);
+  const m = parseInt(parts[2]);
+  const ampm = parts[3].toUpperCase();
+  if (ampm === "PM" && h !== 12) h += 12;
+  if (ampm === "AM" && h === 12) h = 0;
+  return h * 60 + m;
+}
+
+async function hasBookingConflict({ facility, court, date, time }) {
+  const rangeMatch = String(time || "").match(
+    /([0-9]+:[0-9]+\s*[AP]M)\s*-\s*([0-9]+:[0-9]+\s*[AP]M)/i,
+  );
+  if (!rangeMatch) return false;
+  const newStart = parseTimeMins(rangeMatch[1]);
+  const newEnd   = parseTimeMins(rangeMatch[2]);
+  if (newStart === null || newEnd === null) return false;
+
+  const existing = await dbAll(
+    `SELECT booking_time FROM bookings
+     WHERE LOWER(facility) = LOWER(?) AND LOWER(court) = LOWER(?)
+       AND booking_date = ?
+       AND payment_status IN ('paid', 'pending', 'pending_in_person')`,
+    [facility, court, date],
+  );
+
+  for (const b of existing) {
+    const rm = String(b.booking_time || "").match(
+      /([0-9]+:[0-9]+\s*[AP]M)\s*-\s*([0-9]+:[0-9]+\s*[AP]M)/i,
+    );
+    if (!rm) continue;
+    const existStart = parseTimeMins(rm[1]);
+    const existEnd   = parseTimeMins(rm[2]);
+    if (existStart === null || existEnd === null) continue;
+    // Overlap: [newStart, newEnd) intersects [existStart, existEnd)
+    if (newStart < existEnd && newEnd > existStart) return true;
+  }
+  return false;
+}
+
 async function insertBooking(booking) {
   const nowIso = new Date().toISOString();
   const id = crypto.randomUUID();
@@ -2774,6 +2819,11 @@ app.post(
         return res.status(400).json({ error: payload.error });
       }
 
+      // Conflict check — reject if the slot is already taken
+      if (await hasBookingConflict({ facility: payload.facility, court: payload.court, date: payload.date, time: payload.time })) {
+        return res.status(409).json({ error: "Sorry, one or more of those slots has just been booked by someone else. Please select different times." });
+      }
+
       // Free booking (e.g. TESTPAY promo): bypass Stripe entirely
       if (payload.amount === 0) {
         bookingId = await insertBooking({
@@ -3275,4 +3325,18 @@ if (require.main === module) {
   startServer();
 }
 
-module.exports = { app, startServer, listBookings };
+// Returns booking_time strings for active bookings on a specific court/date.
+// Used by api-booked-slots.js; keeps the SQL filter in server.js where dbAll lives.
+async function getActiveBookingTimes({ facility, courtLabel, date }) {
+  const rows = await dbAll(
+    `SELECT booking_time FROM bookings
+     WHERE LOWER(facility)      = LOWER(?)
+       AND LOWER(court)         = LOWER(?)
+       AND booking_date         = ?
+       AND payment_status IN ('paid', 'pending', 'pending_in_person')`,
+    [facility, courtLabel, date],
+  );
+  return rows.map((r) => String(r.booking_time || ""));
+}
+
+module.exports = { app, startServer, listBookings, getActiveBookingTimes };

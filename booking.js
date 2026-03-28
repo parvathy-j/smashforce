@@ -1156,8 +1156,34 @@ async function submitPayment() {
     });
 
     const data = await readJsonResponse(response);
+
+    if (response.status === 409) {
+      // Slot was booked by someone else — reset selection and refresh availability
+      state.selectedSlots = [];
+      state.startTime = "";
+      state.endTime = "";
+      state.durationHrs = 0;
+      if (state.date) {
+        state.bookedSlots = await getBooked(fmtDate(state.date));
+        renderTimeSlots();
+        updateSummary();
+        goStep(2);
+      }
+      errorEl.textContent = data?.error || "Those slots are no longer available.";
+      btn.disabled = false;
+      btnText.classList.remove("hidden");
+      spinner.classList.add("hidden");
+      return;
+    }
+
     if (!response.ok) {
       throw new Error(data?.error || "Could not start checkout.");
+    }
+
+    if (data?.free) {
+      sessionStorage.removeItem(PENDING_BOOKING_KEY);
+      showSuccess(data.bookingId || "");
+      return;
     }
 
     if (!data?.url) {
