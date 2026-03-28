@@ -292,38 +292,61 @@ function getSlotsForDate(date) {
   if (day === 0 || day === 6) {
     // Saturday/Sunday: 9am-11pm, half-hour slots
     const morning = [
-      "9:00 AM", "9:30 AM",
-      "10:00 AM", "10:30 AM",
-      "11:00 AM", "11:30 AM",
-      "12:00 PM", "12:30 PM",
-      "1:00 PM", "1:30 PM",
-      "2:00 PM", "2:30 PM",
-      "3:00 PM", "3:30 PM",
-      "4:00 PM", "4:30 PM",
+      "9:00 AM",
+      "9:30 AM",
+      "10:00 AM",
+      "10:30 AM",
+      "11:00 AM",
+      "11:30 AM",
+      "12:00 PM",
+      "12:30 PM",
+      "1:00 PM",
+      "1:30 PM",
+      "2:00 PM",
+      "2:30 PM",
+      "3:00 PM",
+      "3:30 PM",
+      "4:00 PM",
+      "4:30 PM",
     ];
     const evening = [
-      "5:00 PM", "5:30 PM",
-      "6:00 PM", "6:30 PM",
-      "7:00 PM", "7:30 PM",
-      "8:00 PM", "8:30 PM",
-      "9:00 PM", "9:30 PM",
-      "10:00 PM", "10:30 PM",
+      "5:00 PM",
+      "5:30 PM",
+      "6:00 PM",
+      "6:30 PM",
+      "7:00 PM",
+      "7:30 PM",
+      "8:00 PM",
+      "8:30 PM",
+      "9:00 PM",
+      "9:30 PM",
+      "10:00 PM",
+      "10:30 PM",
     ];
     return [morning, evening];
   } else {
     // Mon-Fri: 6am-9am, 5pm-11pm, half-hour slots
     const morning = [
-      "6:00 AM", "6:30 AM",
-      "7:00 AM", "7:30 AM",
-      "8:00 AM", "8:30 AM",
+      "6:00 AM",
+      "6:30 AM",
+      "7:00 AM",
+      "7:30 AM",
+      "8:00 AM",
+      "8:30 AM",
     ];
     const evening = [
-      "5:00 PM", "5:30 PM",
-      "6:00 PM", "6:30 PM",
-      "7:00 PM", "7:30 PM",
-      "8:00 PM", "8:30 PM",
-      "9:00 PM", "9:30 PM",
-      "10:00 PM", "10:30 PM",
+      "5:00 PM",
+      "5:30 PM",
+      "6:00 PM",
+      "6:30 PM",
+      "7:00 PM",
+      "7:30 PM",
+      "8:00 PM",
+      "8:30 PM",
+      "9:00 PM",
+      "9:30 PM",
+      "10:00 PM",
+      "10:30 PM",
     ];
     return [morning, evening];
   }
@@ -338,6 +361,12 @@ function renderTimeSlots() {
   html += buildSlotGroup("Evening Session", EVENING, booked);
   html += "</div>";
   document.getElementById("timeContent").innerHTML = html;
+  // Attach event listeners for slot selection (CSP-safe)
+  document.querySelectorAll(".slot:not(.taken)").forEach((el) => {
+    el.addEventListener("click", function () {
+      toggleSlot(this.getAttribute("data-slot"));
+    });
+  });
 }
 
 function buildSlotGroup(label, times, booked) {
@@ -347,11 +376,13 @@ function buildSlotGroup(label, times, booked) {
     const [MORNING, EVENING] = getSlotsForDate(state.date);
     const all = [...MORNING, ...EVENING];
     const nextSlot = all[all.indexOf(t) + 1];
-    const isTaken = booked.includes(t) || (nextSlot && booked.includes(nextSlot)) ||
-      state.selectedSlots.some(sel => sel === t || sel === nextSlot);
+    const isTaken =
+      booked.includes(t) ||
+      (nextSlot && booked.includes(nextSlot)) ||
+      state.selectedSlots.some((sel) => sel === t || sel === nextSlot);
     const isSel = state.selectedSlots.includes(t);
     h += `<div class="slot${isTaken ? " taken" : ""}${isSel ? " selected" : ""}"
-               ${isTaken ? "" : "onclick=\"toggleSlot('` + t + `')\""}>${t}</div>`;
+               data-slot="${t}">${t}</div>`;
   });
   h += "</div></div>";
   return h;
@@ -365,14 +396,19 @@ function toggleSlot(time) {
   const nextSlot = all[idx + 1];
   const booked = state.bookedSlots || [];
   // Prevent if either slot is booked or already selected
-  if (booked.includes(time) || (nextSlot && booked.includes(nextSlot)) ||
-      state.selectedSlots.some(sel => sel === time || sel === nextSlot)) {
-    showFormError("Selected slot or the next slot is already booked or selected.");
+  if (
+    booked.includes(time) ||
+    (nextSlot && booked.includes(nextSlot)) ||
+    state.selectedSlots.some((sel) => sel === time || sel === nextSlot)
+  ) {
+    showFormError(
+      "Selected slot or the next slot is already booked or selected.",
+    );
     return;
   }
   // Add or remove slot
   if (state.selectedSlots.includes(time)) {
-    state.selectedSlots = state.selectedSlots.filter(s => s !== time);
+    state.selectedSlots = state.selectedSlots.filter((s) => s !== time);
   } else {
     state.selectedSlots.push(time);
   }
@@ -755,23 +791,26 @@ async function logoutUser() {
 
 function calcTotal() {
   // Each selected slot is a 1-hour session
-  return effectivePrice() * (state.selectedSlots.length);
+  return effectivePrice() * state.selectedSlots.length;
 }
 
 function updateSummary() {
   const total = calcTotal();
   state.total = total;
   // Build time ranges for all selected slots
-  const [MORNING, EVENING] = state.date ? getSlotsForDate(state.date) : [[], []];
+  const [MORNING, EVENING] = state.date
+    ? getSlotsForDate(state.date)
+    : [[], []];
   const all = [...MORNING, ...EVENING];
-  const slotRanges = state.selectedSlots
-    .map((start) => {
-      const idx = all.indexOf(start);
-      const end = all[idx + 1] || "";
-      return end ? `${start} - ${end}` : start;
-    });
+  const slotRanges = state.selectedSlots.map((start) => {
+    const idx = all.indexOf(start);
+    const end = all[idx + 1] || "";
+    return end ? `${start} - ${end}` : start;
+  });
   const timeStr = slotRanges.length ? slotRanges.join(", ") : "-";
-  const dur = slotRanges.length ? `${slotRanges.length} hr${slotRanges.length > 1 ? "s" : ""}` : "-";
+  const dur = slotRanges.length
+    ? `${slotRanges.length} hr${slotRanges.length > 1 ? "s" : ""}`
+    : "-";
 
   // Step 2 sidebar
   setText("sum-fac", state.facilityLabel || "-");
@@ -910,7 +949,17 @@ function populateConfirm() {
   setText("c-fac", state.facilityLabel);
   setText("c-court", state.courtLabel);
   setText("c-date", state.dateLabel);
-  setText("c-time", `${state.startTime} - ${state.endTime}`);
+  // Show all selected slot ranges for multi-slot bookings
+  const [MORNING, EVENING] = state.date
+    ? getSlotsForDate(state.date)
+    : [[], []];
+  const all = [...MORNING, ...EVENING];
+  const slotRanges = state.selectedSlots.map((start) => {
+    const idx = all.indexOf(start);
+    const end = all[idx + 1] || "";
+    return end ? `${start} - ${end}` : start;
+  });
+  setText("c-time", slotRanges.length ? slotRanges.join(", ") : "-");
   // Always show 1 hr for duration
   setText("c-dur", "1 hr");
   setText("c-mem", memLabels[memSel] || "None");
@@ -951,14 +1000,15 @@ function getCheckoutPayload() {
   const phone = document.getElementById("f-phone").value.trim();
   const membershipType = document.getElementById("f-membership").value;
   // Build all selected slot time ranges
-  const [MORNING, EVENING] = state.date ? getSlotsForDate(state.date) : [[], []];
+  const [MORNING, EVENING] = state.date
+    ? getSlotsForDate(state.date)
+    : [[], []];
   const all = [...MORNING, ...EVENING];
-  const slotRanges = state.selectedSlots
-    .map((start) => {
-      const idx = all.indexOf(start);
-      const end = all[idx + 1] || "";
-      return end ? `${start} - ${end}` : start;
-    });
+  const slotRanges = state.selectedSlots.map((start) => {
+    const idx = all.indexOf(start);
+    const end = all[idx + 1] || "";
+    return end ? `${start} - ${end}` : start;
+  });
   return {
     facility: state.facilityType,
     date: state.date ? fmtDate(state.date) : "",
