@@ -482,11 +482,8 @@ async function applyAdminContent() {
     courtMembershipPrice: "courtMembershipPrice",
     allAccessMembershipPrice: "allAccessMembershipPrice",
     bookingCta: "bookingCtaButton",
-    contactLocation: "contactLocationText",
-    contactPhone: "contactPhoneText",
-    contactEmail: "contactEmailText",
-    contactHours: "contactHoursText",
     floatingButtonText: "floatingButtonText",
+    // Contact fields intentionally omitted to keep Contact Us static
   };
 
   Object.entries(fieldMap).forEach(([key, elementId]) => {

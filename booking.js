@@ -372,7 +372,6 @@ function clearFormError() {
 }
 
 function setDuration(hrs, btn) {
-  // Only 1 hour allowed, force always
   state.durationHrs = 1;
   document
     .querySelectorAll(".dur-btn")
