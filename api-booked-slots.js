@@ -2,7 +2,6 @@
 // GET /api/booked-slots?facility=standard&court=1&date=2026-03-28
 const express = require("express");
 const router = express.Router();
-const { listBookings } = require("./server");
 // Assumes you have a function to get bookings from DB
 // Example: listBookings({ facility, court, bookingDate })
 
@@ -16,8 +15,30 @@ router.get("/api/booked-slots", async (req, res) => {
         .status(400)
         .json({ error: "Missing facility, court, or date" });
     }
-    // Query bookings for this facility/court/date
-    const bookings = await listBookings({ facility, court, bookingDate: date });
+    // Lazy require avoids circular-dependency issue (server.js requires this file too)
+    const { listBookings } = require("./server");
+
+    // Fetch all bookings for this date, then filter in JS for facility + court.
+    // listBookings uses `filters.date` (not `bookingDate`), and has no facility/court filter.
+    const allForDate = await listBookings({ date, limit: 500 });
+
+    // Only consider active bookings (not expired/failed/cancelled)
+    const ACTIVE_STATUSES = new Set(["paid", "pending", "pending_in_person"]);
+
+    // The DB stores court as "Court 1" or "Table 2"; the API receives the raw number (e.g. "1").
+    // Normalise both sides to just the number/label for comparison.
+    function normaliseCourt(raw) {
+      return String(raw || "").replace(/^(court|table)\s*/i, "").trim().toLowerCase();
+    }
+
+    const bookings = allForDate.filter((b) => {
+      if (!ACTIVE_STATUSES.has(String(b.paymentStatus || "").toLowerCase())) return false;
+      // facility stored as 'standard' | 'single' | 'table' — match loosely
+      const bFac = String(b.facility || "").toLowerCase();
+      if (!bFac.includes(facility.toLowerCase())) return false;
+      // court: DB "Court 1" → "1", API "1" → "1"
+      return normaliseCourt(b.court) === normaliseCourt(court);
+    });
 
     // Define all possible slots (every 30 min, morning and evening)
     const ALL_SLOTS = [
@@ -66,28 +87,20 @@ router.get("/api/booked-slots", async (req, res) => {
       return h * 60 + (m || 0);
     }
 
-    // Expand booking ranges into all affected slots
+    // Expand booking ranges into all affected 30-min slots
     const blocked = new Set();
     for (const b of bookings) {
-      // If bookingTime is a range (e.g., "8:30 AM - 5:30 PM"), block all overlapping slots
       const rangeMatch = String(b.bookingTime).match(
-        /([0-9: ]+[AP]M)\s*-\s*([0-9: ]+[AP]M)/,
+        /([0-9]+:[0-9]+\s*[AP]M)\s*-\s*([0-9]+:[0-9]+\s*[AP]M)/i,
       );
       if (rangeMatch) {
-        const start = parseTime(rangeMatch[1]);
-        const end = parseTime(rangeMatch[2]);
+        const bookStart = parseTime(rangeMatch[1]);
+        const bookEnd   = parseTime(rangeMatch[2]);
         for (const slot of ALL_SLOTS) {
           const slotStart = parseTime(slot);
-          const slotEnd = slotStart + 60;
-          // Block slot if it overlaps any part of the booking (including if booking ends at a half-hour)
-          if (slotStart < end && slotEnd > start) blocked.add(slot);
-        }
-        // If booking ends at a half-hour (e.g., 5:30 PM), also block the slot that starts at the previous hour
-        if (end % 60 !== 0) {
-          for (const slot of ALL_SLOTS) {
-            const slotStart = parseTime(slot);
-            if (slotStart + 60 > end && slotStart < end) blocked.add(slot);
-          }
+          const slotEnd   = slotStart + 30; // each slot is 30 minutes
+          // Block this slot if it overlaps with the booking window [bookStart, bookEnd)
+          if (slotStart < bookEnd && slotEnd > bookStart) blocked.add(slot);
         }
       } else if (ALL_SLOTS.includes(b.bookingTime)) {
         blocked.add(b.bookingTime);
