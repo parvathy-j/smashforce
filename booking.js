@@ -1,18 +1,4 @@
-﻿// === TEMPORARY: Disable all booking UI before 28/03/2026 ===
-(function disableBookingIfBeforeMarch28() {
-  const now = new Date();
-  // Set to your local timezone if needed
-  const cutoff = new Date(2026, 2, 28); // Months are 0-based: 2 = March
-  if (now < cutoff) {
-    document.addEventListener("DOMContentLoaded", function () {
-      // Hide or disable all booking panels
-      document.body.innerHTML = '<div style="color:#fff;text-align:center;padding:80px 20px;font-size:2rem;background:#22334a;">Online booking will open on <b>28 March 2026</b>.<br><br>Thank you for your patience!</div>';
-    });
-  }
-})();
-// === END TEMPORARY BLOCK ===
-
-// Expose booking functions globally for inline HTML event handlers
+﻿// Expose booking functions globally for inline HTML event handlers
 window.selectFacility = selectFacility;
 window.selectCourt = selectCourt;
 window.selectTable = selectTable;
@@ -116,7 +102,8 @@ const state = {
   isMember: false,
   date: null, // Date object
   dateLabel: "",
-  selectedSlots: [], // array of slot start times
+  startTime: "",
+  endTime: "",
   durationHrs: 1,
   total: 0,
   calYear: 0,
@@ -304,63 +291,36 @@ async function selectDate(date, el) {
 function getSlotsForDate(date) {
   const day = date.getDay();
   if (day === 0 || day === 6) {
-    // Saturday/Sunday: 9am-11pm, half-hour slots
+    // Saturday/Sunday: 9am-11pm
     const morning = [
       "9:00 AM",
-      "9:30 AM",
       "10:00 AM",
-      "10:30 AM",
       "11:00 AM",
-      "11:30 AM",
       "12:00 PM",
-      "12:30 PM",
       "1:00 PM",
-      "1:30 PM",
       "2:00 PM",
-      "2:30 PM",
       "3:00 PM",
-      "3:30 PM",
       "4:00 PM",
-      "4:30 PM",
     ];
     const evening = [
       "5:00 PM",
-      "5:30 PM",
       "6:00 PM",
-      "6:30 PM",
       "7:00 PM",
-      "7:30 PM",
       "8:00 PM",
-      "8:30 PM",
       "9:00 PM",
-      "9:30 PM",
       "10:00 PM",
-      "10:30 PM",
     ];
     return [morning, evening];
   } else {
-    // Mon-Fri: 6am-9am, 5pm-11pm, half-hour slots
-    const morning = [
-      "6:00 AM",
-      "6:30 AM",
-      "7:00 AM",
-      "7:30 AM",
-      "8:00 AM",
-      "8:30 AM",
-    ];
+    // Mon-Fri: 6am-9am, 5pm-11pm
+    const morning = ["6:00 AM", "7:00 AM", "8:00 AM"];
     const evening = [
       "5:00 PM",
-      "5:30 PM",
       "6:00 PM",
-      "6:30 PM",
       "7:00 PM",
-      "7:30 PM",
       "8:00 PM",
-      "8:30 PM",
       "9:00 PM",
-      "9:30 PM",
       "10:00 PM",
-      "10:30 PM",
     ];
     return [morning, evening];
   }
@@ -375,74 +335,24 @@ function renderTimeSlots() {
   html += buildSlotGroup("Evening Session", EVENING, booked);
   html += "</div>";
   document.getElementById("timeContent").innerHTML = html;
-  // Attach event listeners for slot selection (CSP-safe)
-  document.querySelectorAll(".slot:not(.taken)").forEach((el) => {
-    el.addEventListener("click", function () {
-      toggleSlot(this.getAttribute("data-slot"));
-    });
-  });
 }
 
 function buildSlotGroup(label, times, booked) {
   let h = `<div><div class="sess-label">${label}</div><div class="slots-grid">`;
-  const now = new Date();
-  const isToday = state.date &&
-    now.getFullYear() === state.date.getFullYear() &&
-    now.getMonth() === state.date.getMonth() &&
-    now.getDate() === state.date.getDate();
-  times.forEach((t, idx) => {
-    const [MORNING, EVENING] = getSlotsForDate(state.date);
-    const all = [...MORNING, ...EVENING];
-    const nextSlot = all[all.indexOf(t) + 1];
-    const isSel = state.selectedSlots.includes(t);
-    // Parse slot time to Date for comparison
-    let slotDate = new Date(state.date);
-    let [timeStr, ampm] = t.split(' ');
-    let [h, m] = timeStr.split(':');
-    h = parseInt(h, 10);
-    m = parseInt(m, 10);
-    if (ampm === 'PM' && h !== 12) h += 12;
-    if (ampm === 'AM' && h === 12) h = 0;
-    slotDate.setHours(h, m, 0, 0);
-    let isPast = false;
-    if (isToday && slotDate < now) isPast = true;
-    // Block if slot is in the past (unless already selected), or if booked, or if next slot is booked, or if overlapping selection (unless already selected)
-    let isTaken = false;
-    if (!isSel) {
-      isTaken = isPast || booked.includes(t) || (nextSlot && booked.includes(nextSlot)) ||
-        state.selectedSlots.some(sel => sel === t || sel === nextSlot);
-    }
+  times.forEach((t) => {
+    const isTaken = booked.includes(t);
+    const isSel = t === state.startTime;
     h += `<div class="slot${isTaken ? " taken" : ""}${isSel ? " selected" : ""}"
-               data-slot="${t}">${t}</div>`;
+               ${isTaken ? "" : "onclick=\"selectSlot('" + t + "')\""}>${t}</div>`;
   });
   h += "</div></div>";
   return h;
 }
 
-function toggleSlot(time) {
+function selectSlot(time) {
   clearFormError();
-  const [MORNING, EVENING] = getSlotsForDate(state.date);
-  const all = [...MORNING, ...EVENING];
-  const idx = all.indexOf(time);
-  const nextSlot = all[idx + 1];
-  const booked = state.bookedSlots || [];
-  // Prevent if either slot is booked or already selected
-  if (
-    booked.includes(time) ||
-    (nextSlot && booked.includes(nextSlot)) ||
-    state.selectedSlots.some((sel) => sel === time || sel === nextSlot)
-  ) {
-    showFormError(
-      "Selected slot or the next slot is already booked or selected.",
-    );
-    return;
-  }
-  // Add or remove slot
-  if (state.selectedSlots.includes(time)) {
-    state.selectedSlots = state.selectedSlots.filter((s) => s !== time);
-  } else {
-    state.selectedSlots.push(time);
-  }
+  state.startTime = time;
+  state.endTime = calcEndTime(time, state.durationHrs);
   renderTimeSlots();
   updateSummary();
 }
@@ -467,7 +377,10 @@ function setDuration(hrs, btn) {
     .querySelectorAll(".dur-btn")
     .forEach((b) => b.classList.remove("active"));
   if (btn) btn.classList.add("active");
-  // No-op for multi-slot mode
+  if (state.startTime) {
+    state.endTime = calcEndTime(state.startTime, 1);
+    updateSummary();
+  }
   if (state.date) renderTimeSlots();
 }
 
@@ -476,8 +389,12 @@ function calcEndTime(start, hrs) {
   const [MORNING, EVENING] = getSlotsForDate(state.date);
   const all = [...MORNING, ...EVENING];
   const idx = all.indexOf(start);
-  // Always return the next slot as the end time for 1-hour booking
-  return all[idx + 1] || "";
+  return (
+    all[idx + 1] ||
+    (state.date.getDay() === 0 || state.date.getDay() === 6
+      ? "11:00 PM"
+      : "9:00 AM")
+  );
 }
 
 function fmtDate(d) {
@@ -821,26 +738,15 @@ async function logoutUser() {
 }
 
 function calcTotal() {
-  // Each selected slot is a 1-hour session
-  return effectivePrice() * state.selectedSlots.length;
+  return effectivePrice() * state.durationHrs;
 }
 
 function updateSummary() {
   const total = calcTotal();
   state.total = total;
-  // Build time ranges for all selected slots
-  const [MORNING, EVENING] = state.date
-    ? getSlotsForDate(state.date)
-    : [[], []];
-  const all = [...MORNING, ...EVENING];
-  const slotRanges = state.selectedSlots.map((start) => {
-    const idx = all.indexOf(start);
-    const end = all[idx + 1] || "";
-    return end ? `${start} - ${end}` : start;
-  });
-  const timeStr = slotRanges.length ? slotRanges.join(", ") : "-";
-  const dur = slotRanges.length
-    ? `${slotRanges.length} hr${slotRanges.length > 1 ? "s" : ""}`
+  const dur = `1 hr`;
+  const timeStr = state.startTime
+    ? `${state.startTime} - ${state.endTime}`
     : "-";
 
   // Step 2 sidebar
@@ -848,14 +754,14 @@ function updateSummary() {
   setText("sum-court", state.courtLabel || "-");
   setText("sum-date", state.dateLabel || "-");
   setText("sum-time", timeStr);
-  setText("sum-dur", dur);
+  setText("sum-dur", state.startTime ? dur : "-");
   setText(
     "sum-rate",
     state.facilityLabel
       ? `$${effectivePrice()}/hr${state.isMember ? " (member)" : ""}`
       : "-",
   );
-  setText("sum-total", slotRanges.length ? `$${total.toFixed(2)}` : "$0.00");
+  setText("sum-total", state.startTime ? `$${total.toFixed(2)}` : "$0.00");
 
   // Step 3 sidebar
   setText("s3-fac", state.facilityLabel || "-");
@@ -980,17 +886,7 @@ function populateConfirm() {
   setText("c-fac", state.facilityLabel);
   setText("c-court", state.courtLabel);
   setText("c-date", state.dateLabel);
-  // Show all selected slot ranges for multi-slot bookings
-  const [MORNING, EVENING] = state.date
-    ? getSlotsForDate(state.date)
-    : [[], []];
-  const all = [...MORNING, ...EVENING];
-  const slotRanges = state.selectedSlots.map((start) => {
-    const idx = all.indexOf(start);
-    const end = all[idx + 1] || "";
-    return end ? `${start} - ${end}` : start;
-  });
-  setText("c-time", slotRanges.length ? slotRanges.join(", ") : "-");
+  setText("c-time", `${state.startTime} - ${state.endTime}`);
   // Always show 1 hr for duration
   setText("c-dur", "1 hr");
   setText("c-mem", memLabels[memSel] || "None");
@@ -1030,22 +926,11 @@ function getCheckoutPayload() {
   const email = document.getElementById("f-email").value.trim();
   const phone = document.getElementById("f-phone").value.trim();
   const membershipType = document.getElementById("f-membership").value;
-  // Build all selected slot time ranges
-  const [MORNING, EVENING] = state.date
-    ? getSlotsForDate(state.date)
-    : [[], []];
-  const all = [...MORNING, ...EVENING];
-  const slotRanges = state.selectedSlots.map((start) => {
-    const idx = all.indexOf(start);
-    const end = all[idx + 1] || "";
-    return end ? `${start} - ${end}` : start;
-  });
   return {
     facility: state.facilityType,
     date: state.date ? fmtDate(state.date) : "",
-    slots: state.selectedSlots,
-    slotRanges,
-    duration: state.selectedSlots.length,
+    time: `${state.startTime} - ${state.endTime}`,
+    duration: state.durationHrs,
     court: state.courtLabel,
     name: `${firstName} ${lastName}`.trim(),
     email,
@@ -1061,8 +946,9 @@ function persistPendingBooking() {
       facilityLabel: state.facilityLabel,
       courtLabel: state.courtLabel,
       dateLabel: state.dateLabel,
-      selectedSlots: state.selectedSlots,
-      durationHrs: state.selectedSlots.length,
+      startTime: state.startTime,
+      endTime: state.endTime,
+      durationHrs: state.durationHrs,
     },
     email: document.getElementById("f-email").value.trim(),
   };
