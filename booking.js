@@ -102,8 +102,7 @@ const state = {
   isMember: false,
   date: null, // Date object
   dateLabel: "",
-  startTime: "",
-  endTime: "",
+  selectedSlots: [], // array of slot start times
   durationHrs: 1,
   total: 0,
   calYear: 0,
@@ -343,20 +342,40 @@ function renderTimeSlots() {
 
 function buildSlotGroup(label, times, booked) {
   let h = `<div><div class="sess-label">${label}</div><div class="slots-grid">`;
-  times.forEach((t) => {
-    const isTaken = booked.includes(t);
-    const isSel = t === state.startTime;
+  times.forEach((t, idx) => {
+    // Block if this slot or the next slot is booked, or if either is already selected
+    const [MORNING, EVENING] = getSlotsForDate(state.date);
+    const all = [...MORNING, ...EVENING];
+    const nextSlot = all[all.indexOf(t) + 1];
+    const isTaken = booked.includes(t) || (nextSlot && booked.includes(nextSlot)) ||
+      state.selectedSlots.some(sel => sel === t || sel === nextSlot);
+    const isSel = state.selectedSlots.includes(t);
     h += `<div class="slot${isTaken ? " taken" : ""}${isSel ? " selected" : ""}"
-               ${isTaken ? "" : "onclick=\"selectSlot('" + t + "')\""}>${t}</div>`;
+               ${isTaken ? "" : "onclick=\"toggleSlot('` + t + `')\""}>${t}</div>`;
   });
   h += "</div></div>";
   return h;
 }
 
-function selectSlot(time) {
+function toggleSlot(time) {
   clearFormError();
-  state.startTime = time;
-  state.endTime = calcEndTime(time, state.durationHrs);
+  const [MORNING, EVENING] = getSlotsForDate(state.date);
+  const all = [...MORNING, ...EVENING];
+  const idx = all.indexOf(time);
+  const nextSlot = all[idx + 1];
+  const booked = state.bookedSlots || [];
+  // Prevent if either slot is booked or already selected
+  if (booked.includes(time) || (nextSlot && booked.includes(nextSlot)) ||
+      state.selectedSlots.some(sel => sel === time || sel === nextSlot)) {
+    showFormError("Selected slot or the next slot is already booked or selected.");
+    return;
+  }
+  // Add or remove slot
+  if (state.selectedSlots.includes(time)) {
+    state.selectedSlots = state.selectedSlots.filter(s => s !== time);
+  } else {
+    state.selectedSlots.push(time);
+  }
   renderTimeSlots();
   updateSummary();
 }
@@ -381,10 +400,7 @@ function setDuration(hrs, btn) {
     .querySelectorAll(".dur-btn")
     .forEach((b) => b.classList.remove("active"));
   if (btn) btn.classList.add("active");
-  if (state.startTime) {
-    state.endTime = calcEndTime(state.startTime, 1);
-    updateSummary();
-  }
+  // No-op for multi-slot mode
   if (state.date) renderTimeSlots();
 }
 
@@ -393,12 +409,8 @@ function calcEndTime(start, hrs) {
   const [MORNING, EVENING] = getSlotsForDate(state.date);
   const all = [...MORNING, ...EVENING];
   const idx = all.indexOf(start);
-  return (
-    all[idx + 1] ||
-    (state.date.getDay() === 0 || state.date.getDay() === 6
-      ? "11:00 PM"
-      : "9:00 AM")
-  );
+  // Always return the next slot as the end time for 1-hour booking
+  return all[idx + 1] || "";
 }
 
 function fmtDate(d) {
@@ -742,30 +754,38 @@ async function logoutUser() {
 }
 
 function calcTotal() {
-  return effectivePrice() * state.durationHrs;
+  // Each selected slot is a 1-hour session
+  return effectivePrice() * (state.selectedSlots.length);
 }
 
 function updateSummary() {
   const total = calcTotal();
   state.total = total;
-  const dur = `1 hr`;
-  const timeStr = state.startTime
-    ? `${state.startTime} - ${state.endTime}`
-    : "-";
+  // Build time ranges for all selected slots
+  const [MORNING, EVENING] = state.date ? getSlotsForDate(state.date) : [[], []];
+  const all = [...MORNING, ...EVENING];
+  const slotRanges = state.selectedSlots
+    .map((start) => {
+      const idx = all.indexOf(start);
+      const end = all[idx + 1] || "";
+      return end ? `${start} - ${end}` : start;
+    });
+  const timeStr = slotRanges.length ? slotRanges.join(", ") : "-";
+  const dur = slotRanges.length ? `${slotRanges.length} hr${slotRanges.length > 1 ? "s" : ""}` : "-";
 
   // Step 2 sidebar
   setText("sum-fac", state.facilityLabel || "-");
   setText("sum-court", state.courtLabel || "-");
   setText("sum-date", state.dateLabel || "-");
   setText("sum-time", timeStr);
-  setText("sum-dur", state.startTime ? dur : "-");
+  setText("sum-dur", dur);
   setText(
     "sum-rate",
     state.facilityLabel
       ? `$${effectivePrice()}/hr${state.isMember ? " (member)" : ""}`
       : "-",
   );
-  setText("sum-total", state.startTime ? `$${total.toFixed(2)}` : "$0.00");
+  setText("sum-total", slotRanges.length ? `$${total.toFixed(2)}` : "$0.00");
 
   // Step 3 sidebar
   setText("s3-fac", state.facilityLabel || "-");
