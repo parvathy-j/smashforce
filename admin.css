@@ -55,142 +55,67 @@
   margin-left: 0.5em;
   color: #888;
 }
-/* --- HubSpot-style Modern Calendar UI for Admin Panel --- */
-#adminCalendarContainer {
-  background: #fff;
-  border-radius: 16px;
-  box-shadow:
-    0 2px 12px 0 rgba(60, 72, 88, 0.1),
-    0 1.5px 4px 0 rgba(60, 72, 88, 0.08);
-  padding: 2rem 2.5rem 1.5rem 2.5rem;
-  margin-bottom: 2rem;
-  font-family: "Outfit", "Barlow Condensed", Arial, sans-serif;
-  max-width: 900px;
-  margin-left: auto;
-  margin-right: auto;
+/* FullCalendar theming */
+#adminFullCalendar {
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 12px;
+  padding: 12px;
 }
 
-#adminCalendarContainer .calendar-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 1.5rem;
+#adminFullCalendar .fc-toolbar-title {
+  font-family: "Barlow Condensed", sans-serif;
+  font-size: 1.4rem;
 }
 
-#adminCalendarContainer .calendar-title {
-  font-size: 2rem;
-  font-weight: 700;
-  color: #1a202c;
-  letter-spacing: -1px;
+#adminFullCalendar .fc-button {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border-color: var(--line) !important;
+  color: var(--text) !important;
+  font-family: "Outfit", sans-serif;
+  font-size: 0.82rem;
 }
 
-#adminCalendarContainer .calendar-nav {
-  display: flex;
-  gap: 0.5rem;
+#adminFullCalendar .fc-button:hover {
+  background: rgba(255, 255, 255, 0.14) !important;
+  border-color: var(--accent) !important;
 }
 
-#adminCalendarContainer .calendar-nav button {
-  background: #f3f6fa;
-  border: none;
-  border-radius: 6px;
-  padding: 0.5em 1.2em;
-  font-size: 1rem;
-  color: #2d3748;
+#adminFullCalendar .fc-button-active,
+#adminFullCalendar .fc-button:focus {
+  background: var(--accent) !important;
+  border-color: var(--accent) !important;
+  color: #041724 !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+#adminFullCalendar .fc-col-header-cell,
+#adminFullCalendar .fc-timegrid-slot-label,
+#adminFullCalendar .fc-daygrid-day-number {
+  color: var(--text-dim);
+  font-size: 0.82rem;
+}
+
+#adminFullCalendar .fc-scrollgrid,
+#adminFullCalendar .fc-timegrid-slot,
+#adminFullCalendar .fc-col-header-cell {
+  border-color: var(--line) !important;
+}
+
+#adminFullCalendar .fc-daygrid-day,
+#adminFullCalendar .fc-timegrid-col {
+  background: transparent;
+}
+
+#adminFullCalendar .fc-event {
+  border-radius: 5px;
+  font-size: 0.78rem;
   cursor: pointer;
-  transition: background 0.15s;
-}
-#adminCalendarContainer .calendar-nav button:hover {
-  background: #e2e8f0;
+  padding: 1px 4px;
 }
 
-#adminCalendarContainer .calendar-grid {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 0.5rem;
-  background: #f8fafc;
-  border-radius: 10px;
-  padding: 1rem 0.5rem 0.5rem 0.5rem;
-}
-
-#adminCalendarContainer .calendar-day-header {
-  font-weight: 600;
-  color: #718096;
-  text-align: center;
-  font-size: 1.1rem;
-  margin-bottom: 0.5rem;
-}
-
-#adminCalendarContainer .cal-day {
-  background: #fff;
-  border-radius: 8px;
-  min-height: 60px;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  justify-content: flex-start;
-  padding: 0.5em 0.7em 0.3em 0.7em;
-  font-size: 1.1rem;
-  color: #2d3748;
-  cursor: pointer;
-  border: 1.5px solid transparent;
-  transition:
-    box-shadow 0.15s,
-    border 0.15s,
-    background 0.15s;
-  position: relative;
-}
-#adminCalendarContainer .cal-day.selected {
-  border: 2px solid #2563eb;
-  background: #e0e7ff;
-  color: #1e40af;
-  box-shadow: 0 2px 8px 0 rgba(37, 99, 235, 0.08);
-}
-#adminCalendarContainer .cal-day.today {
-  border: 2px solid #38b2ac;
-  background: #e6fffa;
-  color: #234e52;
-}
-#adminCalendarContainer .cal-day:hover {
-  border: 2px solid #a0aec0;
-  background: #f1f5f9;
-}
-#adminCalendarContainer .cal-day .day-num {
-  font-weight: 700;
-  font-size: 1.2rem;
-  margin-bottom: 0.2em;
-}
-#adminCalendarContainer .cal-day .booking-dot {
-  width: 8px;
-  height: 8px;
-  background: #2563eb;
-  border-radius: 50%;
-  position: absolute;
-  left: 8px;
-  top: 8px;
-  box-shadow: 0 1px 3px 0 rgba(37, 99, 235, 0.1);
-}
-#adminCalendarContainer .cal-day .booking-dot.paid {
-  background: #38b2ac;
-}
-#adminCalendarContainer .cal-day .booking-dot.pending {
-  background: #f59e42;
-}
-#adminCalendarContainer .cal-day .booking-dot.failed {
-  background: #e53e3e;
-}
-
-/* Responsive adjustments */
-@media (max-width: 700px) {
-  #adminCalendarContainer {
-    padding: 1rem 0.5rem 1rem 0.5rem;
-    max-width: 100vw;
-  }
-  #adminCalendarContainer .calendar-title {
-    font-size: 1.3rem;
-  }
-  #adminCalendarContainer .calendar-grid {
-    font-size: 0.95rem;
-  }
+#adminFullCalendar .fc-day-today {
+  background: rgba(93, 169, 233, 0.07) !important;
 }
 /* Strong summary box for booked courts/tables */
 .summary-box,
@@ -508,6 +433,51 @@ textarea:focus {
 .status {
   color: var(--text-dim);
   font-size: 0.9rem;
+}
+
+.status-bar {
+  color: var(--text-dim);
+  font-size: 0.88rem;
+  padding: 10px 0 4px;
+  min-height: 1.4em;
+}
+
+.section-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.section-head h2 {
+  margin: 0;
+}
+
+.filters {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.filters input,
+.filters select {
+  width: auto;
+  flex: 1 1 140px;
+  max-width: 220px;
+}
+
+.inline-form {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.inline-form input {
+  flex: 1 1 220px;
+  max-width: 320px;
 }
 
 @media (max-width: 980px) {

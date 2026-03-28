@@ -3,15 +3,16 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Smashforce Badminton Centre Admin Panel</title>
+    <title>Smashforce Admin Panel</title>
     <link rel="icon" type="image/jpeg" href="favicon.jpeg" />
     <link
       href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800;900&family=Outfit:wght@300;400;500;600;700&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="admin.css" />
-    <!-- FullCalendar CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css" rel="stylesheet" />
+  </head>
+  <body>
     <main class="admin-wrap">
       <header class="admin-head">
         <div>
@@ -28,30 +29,14 @@
 
       <!-- CALENDAR -->
       <section class="card">
-        <h2>📅 Calendar</h2>
-        <div id="adminFullCalendar" style="margin-bottom:32px;"></div>
-        <div id="adminCalendarContainer"></div>
-        <div class="table-container">
-          <table id="adminCalendarBookingsTable">
-            <thead>
-              <tr>
-                <th>Time</th>
-                <th>Facility</th>
-                <th>Court/Table</th>
-                <th>Name</th>
-                <th>Email</th>
-                <th>Phone</th>
-              </tr>
-            </thead>
-            <tbody></tbody>
-          </table>
-        </div>
+        <h2>Calendar</h2>
+        <div id="adminFullCalendar"></div>
       </section>
 
       <!-- BOOKINGS -->
       <section class="card">
         <div class="section-head">
-          <h2>📋 Recent Bookings</h2>
+          <h2>Recent Bookings</h2>
           <div>
             <button id="refreshBookingsBtn" class="btn">Refresh</button>
             <button id="reconcileBookingsBtn" class="btn">Reconcile</button>
@@ -70,12 +55,14 @@
             <option value="failed">Failed</option>
           </select>
           <input id="bookingsEmailFilter" placeholder="Search email" />
+          <input id="bookingsRefFilter" placeholder="Search reference" />
+          <button id="bookingsRefSearchBtn" class="btn">Search</button>
         </div>
 
         <!-- SUMMARY -->
         <div id="bookedSummary" class="summary-box">
           <strong>Booked Courts:</strong>
-          <div id="bookedSummaryContent"></div>
+          <div id="bookedSummaryContent">Select a date to see booked courts/tables.</div>
         </div>
 
         <!-- TABLE -->
@@ -95,57 +82,35 @@
               </tr>
             </thead>
             <tbody id="bookingsTableBody">
-              <tr>
-                <td colspan="9">Loading...</td>
-              </tr>
+              <tr><td colspan="9">Loading...</td></tr>
             </tbody>
           </table>
-        </div>
-
-        <!-- SEARCH -->
-        <div class="filters">
-          <input id="bookingsRefFilter" placeholder="Search reference" />
-          <button id="bookingsRefSearchBtn" class="btn">Search</button>
         </div>
       </section>
 
       <!-- MEMBERSHIP -->
       <section class="card">
-        <h2>👤 Membership Lookup</h2>
+        <h2>Membership Lookup</h2>
         <form id="membershipLookupForm" class="inline-form">
-          <input
-            id="membershipLookupEmail"
-            type="email"
-            placeholder="Enter email"
-            required
-          />
+          <input id="membershipLookupEmail" type="email" placeholder="Enter email" required />
           <button class="btn">Check</button>
         </form>
         <div id="membershipLookupResult"></div>
       </section>
 
-      <!-- ACTIONS -->
-      <footer class="actions">
-        <button id="saveBtn" class="btn primary">Save Changes</button>
-        <button id="resetBtn" class="btn">Reset</button>
-        <span id="statusText"></span>
-      </footer>
-
-      <!-- Booking Details Modal -->
-      <div id="bookingDetailsModal" class="modal">
-        <div class="modal-content">
-          <span class="close" id="closeBookingDetails">&times;</span>
-          <h3>Bookings for <span id="modalDateLabel"></span></h3>
-          <div id="modalBookingList"></div>
-        </div>
-      </div>
+      <div id="statusBar" class="status-bar"></div>
     </main>
 
-    <!-- FullCalendar JS -->
+    <!-- Booking Details Modal -->
+    <div id="bookingDetailsModal" class="modal">
+      <div class="modal-content">
+        <span class="close" id="closeBookingDetails">&times;</span>
+        <h3>Bookings for <span id="modalDateLabel"></span></h3>
+        <div id="modalBookingList"></div>
+      </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
     <script src="admin.js"></script>
-  </body>
-</html>
-      </script>
   </body>
 </html>
