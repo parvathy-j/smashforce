@@ -385,16 +385,33 @@ function renderTimeSlots() {
 
 function buildSlotGroup(label, times, booked) {
   let h = `<div><div class="sess-label">${label}</div><div class="slots-grid">`;
+  const now = new Date();
+  const isToday = state.date &&
+    now.getFullYear() === state.date.getFullYear() &&
+    now.getMonth() === state.date.getMonth() &&
+    now.getDate() === state.date.getDate();
   times.forEach((t, idx) => {
-    // Block if this slot or the next slot is booked, or if either is already selected
     const [MORNING, EVENING] = getSlotsForDate(state.date);
     const all = [...MORNING, ...EVENING];
     const nextSlot = all[all.indexOf(t) + 1];
-    const isTaken =
-      booked.includes(t) ||
-      (nextSlot && booked.includes(nextSlot)) ||
-      state.selectedSlots.some((sel) => sel === t || sel === nextSlot);
     const isSel = state.selectedSlots.includes(t);
+    // Parse slot time to Date for comparison
+    let slotDate = new Date(state.date);
+    let [timeStr, ampm] = t.split(' ');
+    let [h, m] = timeStr.split(':');
+    h = parseInt(h, 10);
+    m = parseInt(m, 10);
+    if (ampm === 'PM' && h !== 12) h += 12;
+    if (ampm === 'AM' && h === 12) h = 0;
+    slotDate.setHours(h, m, 0, 0);
+    let isPast = false;
+    if (isToday && slotDate < now) isPast = true;
+    // Block if slot is in the past (unless already selected), or if booked, or if next slot is booked, or if overlapping selection (unless already selected)
+    let isTaken = false;
+    if (!isSel) {
+      isTaken = isPast || booked.includes(t) || (nextSlot && booked.includes(nextSlot)) ||
+        state.selectedSlots.some(sel => sel === t || sel === nextSlot);
+    }
     h += `<div class="slot${isTaken ? " taken" : ""}${isSel ? " selected" : ""}"
                data-slot="${t}">${t}</div>`;
   });
