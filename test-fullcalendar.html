@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Test Booking Calendar</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css"
+      rel="stylesheet"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
+    <style>
+      #calendar {
+        max-width: 900px;
+        margin: 40px auto;
+      }
+      #courtFilter {
+        display: block;
+        margin: 20px auto;
+        font-size: 1.1rem;
+      }
+    </style>
+  </head>
+  <body>
+    <select id="courtFilter">
+      <option value="">All Courts</option>
+      <option value="Court 1">Court 1</option>
+      <option value="Court 2">Court 2</option>
+      <option value="Court 3">Court 3</option>
+    </select>
+    <div id="calendar"></div>
+    <script>
+      const allEvents = [
+        {
+          title: "Court 1: John Doe",
+          start: "2026-03-29T09:00:00",
+          end: "2026-03-29T10:00:00",
+          court: "Court 1",
+        },
+        {
+          title: "Court 2: Jane Smith",
+          start: "2026-03-29T10:00:00",
+          end: "2026-03-29T11:00:00",
+          court: "Court 2",
+        },
+        {
+          title: "Court 3: Alex Lee",
+          start: "2026-03-29T11:00:00",
+          end: "2026-03-29T12:00:00",
+          court: "Court 3",
+        },
+        {
+          title: "Court 1: Priya Patel",
+          start: "2026-03-30T09:00:00",
+          end: "2026-03-30T10:00:00",
+          court: "Court 1",
+        },
+        {
+          title: "Court 2: Sam Wu",
+          start: "2026-03-30T10:00:00",
+          end: "2026-03-30T11:00:00",
+          court: "Court 2",
+        },
+      ];
+      let calendar;
+      function renderCalendar(events) {
+        if (calendar) calendar.destroy();
+        calendar = new FullCalendar.Calendar(
+          document.getElementById("calendar"),
+          {
+            initialView: "timeGridWeek",
+            events: events,
+            height: 600,
+          },
+        );
+        calendar.render();
+      }
+      renderCalendar(allEvents);
+      document
+        .getElementById("courtFilter")
+        .addEventListener("change", function () {
+          const court = this.value;
+          const filtered = court
+            ? allEvents.filter((e) => e.court === court)
+            : allEvents;
+          renderCalendar(filtered);
+        });
+    </script>
+  </body>
+</html>

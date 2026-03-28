@@ -22,18 +22,18 @@ router.get("/api/booked-slots", async (req, res) => {
 
     // Define all possible 1-hour slots (morning and evening)
     const ALL_SLOTS = [
-      "6:00 AM",
-      "7:00 AM",
-      "8:00 AM",
-      "9:00 AM",
-      "10:00 AM",
-      "11:00 AM",
-      "5:00 PM",
-      "6:00 PM",
-      "7:00 PM",
-      "8:00 PM",
-      "9:00 PM",
-      "10:00 PM",
+      "6:00 AM", "6:30 AM",
+      "7:00 AM", "7:30 AM",
+      "8:00 AM", "8:30 AM",
+      "9:00 AM", "9:30 AM",
+      "10:00 AM", "10:30 AM",
+      "11:00 AM", "11:30 AM",
+      "5:00 PM", "5:30 PM",
+      "6:00 PM", "6:30 PM",
+      "7:00 PM", "7:30 PM",
+      "8:00 PM", "8:30 PM",
+      "9:00 PM", "9:30 PM",
+      "10:00 PM", "10:30 PM"
     ];
 
     // Helper to parse time string (e.g., "5:00 PM") to minutes since midnight

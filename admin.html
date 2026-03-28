@@ -10,6 +10,8 @@
       rel="stylesheet"
     />
     <link rel="stylesheet" href="admin.css" />
+    <!-- FullCalendar CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css" rel="stylesheet">
     <main class="admin-wrap">
       <header class="admin-head">
         <div>
@@ -27,6 +29,7 @@
       <!-- CALENDAR -->
       <section class="card">
         <h2>📅 Calendar</h2>
+        <div id="adminFullCalendar" style="margin-bottom:32px;"></div>
         <div id="adminCalendarContainer"></div>
         <div class="table-container">
           <table id="adminCalendarBookingsTable">
@@ -138,6 +141,8 @@
       </div>
     </main>
 
+    <!-- FullCalendar JS -->
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
     <script src="admin.js"></script>
   </body>
 </html>

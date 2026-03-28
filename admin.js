@@ -1,4 +1,45 @@
 // --- Booking Details Modal Logic ---
+// --- FullCalendar Integration ---
+document.addEventListener("DOMContentLoaded", function () {
+  const calendarEl = document.getElementById("adminFullCalendar");
+  if (!calendarEl) return;
+  fetch("/admin/bookings")
+    .then((res) => res.json())
+    .then((data) => {
+      const events = (data.bookings || []).map((b) => {
+        // Combine date and time for start/end
+        // Assume 1-hour slots; adjust as needed
+        const start =
+          b.bookingDate +
+          "T" +
+          (b.bookingTime ? b.bookingTime.split(" - ")[0] : "09:00:00");
+        let end = start;
+        if (b.bookingTime && b.bookingTime.includes("-")) {
+          end = b.bookingDate + "T" + b.bookingTime.split(" - ")[1];
+        } else {
+          // Add 1 hour if only start time
+          const [h, m] = (b.bookingTime || "09:00").split(":");
+          const dateObj = new Date(
+            b.bookingDate + "T" + (b.bookingTime || "09:00:00"),
+          );
+          dateObj.setHours(Number(h) + 1);
+          end = dateObj.toISOString().slice(0, 19);
+        }
+        return {
+          title: `${b.facility || ""}${b.court ? " (Court " + b.court + ")" : ""}: ${b.customerName || b.customerEmail || ""}`,
+          start,
+          end,
+        };
+      });
+      const calendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: "timeGridWeek",
+        height: 600,
+        slotDuration: "00:30:00",
+        events,
+      });
+      calendar.render();
+    });
+});
 let lastLoadedBookings = [];
 
 function showBookingDetailsModal(dateStr) {
