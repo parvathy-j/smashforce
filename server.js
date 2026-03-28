@@ -6,6 +6,7 @@ const express = require("express");
 const helmet = require("helmet");
 const Stripe = require("stripe");
 const nodemailer = require("nodemailer");
+const { Resend } = require("resend");
 const crypto = require("crypto");
 const fs = require("fs/promises");
 const path = require("path");
@@ -71,6 +72,10 @@ const PASSWORD_RESET_DEV_EXPOSE_TOKEN =
 const PASSWORD_RESET_BASE_URL = String(
   process.env.PASSWORD_RESET_BASE_URL || APP_URL,
 ).trim();
+const RESEND_API_KEY = String(process.env.RESEND_API_KEY || "").trim();
+const resend = RESEND_API_KEY ? new Resend(RESEND_API_KEY) : null;
+const BOOKING_FROM_EMAIL = "Smashforce Badminton Centre <info@smashforcebadminton.com>";
+
 const SMTP_HOST = String(process.env.SMTP_HOST || "").trim();
 const SMTP_PORT = Number(process.env.SMTP_PORT || 587);
 const SMTP_SECURE =
@@ -349,7 +354,7 @@ app.get("/test-email", async (req, res) => {
     res.status(500).send("Failed");
   }
 });
-// Send booking confirmation email
+// Send booking confirmation email via Resend
 async function sendBookingConfirmationEmail({
   to,
   name,
@@ -360,31 +365,126 @@ async function sendBookingConfirmationEmail({
   duration,
   ref,
 }) {
-  const transporter = getMailerTransport();
-  if (!transporter) return false;
-  const mailOptions = {
-    from: SMTP_FROM,
-    to,
-    subject: `Booking Confirmed: ${facility} on ${date}`,
-    text: [
-      `Hi ${name || "Player"},`,
-      "",
-      `Your booking is confirmed!`,
-      "",
-      `Facility: ${facility}`,
-      `Court/Table: ${court}`,
-      `Date: ${date}`,
-      `Time: ${time}`,
-      `Duration: ${duration}`,
-      `Reference: ${ref}`,
-      "",
-      "Please arrive 10 minutes before your session.",
-      "",
-      "Thank you for booking with Smashforce Badminton Centre!",
-    ].join("\n"),
-  };
+  if (!resend) {
+    console.warn("Booking confirmation email skipped: RESEND_API_KEY not set.");
+    return false;
+  }
+  if (!to) return false;
+
+  const safeName = escapeHtml(String(name || "Player").trim());
+  const safeRef = escapeHtml(String(ref || "-"));
+  const safeFacility = escapeHtml(String(facility || "-"));
+  const safeCourt = escapeHtml(String(court || "-"));
+  const safeDate = escapeHtml(String(date || "-"));
+  const safeTime = escapeHtml(String(time || "-"));
+  const safeDuration = escapeHtml(String(duration || "1 hr"));
+
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Booking Confirmed</title>
+</head>
+<body style="margin:0;padding:0;background:#0a2342;font-family:'Helvetica Neue',Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#0a2342;padding:40px 0;">
+    <tr>
+      <td align="center">
+        <table width="560" cellpadding="0" cellspacing="0" style="background:#0f2f57;border-radius:16px;overflow:hidden;border:1px solid rgba(255,255,255,0.12);">
+
+          <!-- Header -->
+          <tr>
+            <td style="background:linear-gradient(135deg,#0f2f57 0%,#1a4a8a 100%);padding:36px 40px 28px;text-align:center;border-bottom:1px solid rgba(255,255,255,0.1);">
+              <p style="margin:0 0 6px;font-size:11px;letter-spacing:3px;text-transform:uppercase;color:#5da9e9;font-weight:700;">Smashforce Badminton Centre</p>
+              <h1 style="margin:0;font-size:28px;font-weight:800;color:#ffffff;letter-spacing:0.5px;">Booking Confirmed!</h1>
+              <p style="margin:10px 0 0;font-size:15px;color:rgba(255,255,255,0.65);">See you on the court, ${safeName}.</p>
+            </td>
+          </tr>
+
+          <!-- Ref badge -->
+          <tr>
+            <td style="padding:24px 40px 0;text-align:center;">
+              <div style="display:inline-block;background:rgba(93,169,233,0.15);border:1px solid rgba(93,169,233,0.35);border-radius:8px;padding:10px 24px;">
+                <p style="margin:0;font-size:11px;letter-spacing:2px;text-transform:uppercase;color:#5da9e9;">Booking Reference</p>
+                <p style="margin:4px 0 0;font-size:22px;font-weight:800;color:#ffffff;letter-spacing:2px;">${safeRef}</p>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Details -->
+          <tr>
+            <td style="padding:28px 40px;">
+              <table width="100%" cellpadding="0" cellspacing="0">
+                ${[
+                  ["Facility", safeFacility],
+                  ["Court / Table", safeCourt],
+                  ["Date", safeDate],
+                  ["Time", safeTime],
+                  ["Duration", safeDuration],
+                ].map(([label, value]) => `
+                <tr>
+                  <td style="padding:11px 0;border-bottom:1px solid rgba(255,255,255,0.08);font-size:13px;color:rgba(255,255,255,0.5);width:42%;">${label}</td>
+                  <td style="padding:11px 0;border-bottom:1px solid rgba(255,255,255,0.08);font-size:14px;color:#ffffff;font-weight:600;">${value}</td>
+                </tr>`).join("")}
+              </table>
+            </td>
+          </tr>
+
+          <!-- Note -->
+          <tr>
+            <td style="padding:0 40px 28px;">
+              <div style="background:rgba(93,169,233,0.08);border-left:3px solid #5da9e9;border-radius:0 6px 6px 0;padding:12px 16px;">
+                <p style="margin:0;font-size:13px;color:rgba(255,255,255,0.75);">Please arrive <strong style="color:#ffffff;">10 minutes</strong> before your session. Bring this reference number with you.</p>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="background:rgba(0,0,0,0.2);padding:20px 40px;text-align:center;border-top:1px solid rgba(255,255,255,0.08);">
+              <p style="margin:0;font-size:12px;color:rgba(255,255,255,0.35);">4 Simpson St, Moorabbin VIC 3189 &nbsp;·&nbsp; info@smashforcebadminton.com</p>
+              <p style="margin:6px 0 0;font-size:12px;color:rgba(255,255,255,0.25);">© ${new Date().getFullYear()} Smashforce Badminton Centre</p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+
+  const text = [
+    `Hi ${String(name || "Player").trim()},`,
+    "",
+    "Your booking is confirmed!",
+    "",
+    `Reference:   ${ref}`,
+    `Facility:    ${facility}`,
+    `Court/Table: ${court}`,
+    `Date:        ${date}`,
+    `Time:        ${time}`,
+    `Duration:    ${duration}`,
+    "",
+    "Please arrive 10 minutes before your session.",
+    "",
+    "Smashforce Badminton Centre",
+    "4 Simpson St, Moorabbin VIC 3189",
+    "info@smashforcebadminton.com",
+  ].join("\n");
+
   try {
-    await transporter.sendMail(mailOptions);
+    const { error } = await resend.emails.send({
+      from: BOOKING_FROM_EMAIL,
+      to: [to],
+      subject: `Booking Confirmed – ${ref}`,
+      html,
+      text,
+    });
+    if (error) {
+      console.error("Booking confirmation email failed:", error.message);
+      return false;
+    }
     return true;
   } catch (err) {
     console.error("Booking confirmation email failed:", err.message);
