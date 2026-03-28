@@ -1,4 +1,3 @@
-let adminCalendar = null;
 let lastLoadedBookings = [];
 
 // ---------------------------------------------------------------------------
@@ -34,8 +33,45 @@ function bookingRef(booking) {
   return booking.id ? "SFA-" + String(booking.id).slice(-6).toUpperCase() : "-";
 }
 
-// Parse "9:00 AM" -> "09:00:00" for use in ISO datetime strings
-function parseTimeToISO(timeStr) {
+
+// ---------------------------------------------------------------------------
+// Resource Grid — courts as rows, time slots as columns
+// ---------------------------------------------------------------------------
+
+const GRID_START_MINS = 6 * 60;   // 6:00 AM
+const GRID_END_MINS   = 22 * 60;  // 10:00 PM (last slot label; bookings run to 11 PM)
+
+const GRID_RESOURCES = [
+  { key: "standard-1",  label: "Court 1",   facility: "standard", court: "1" },
+  { key: "standard-2",  label: "Court 2",   facility: "standard", court: "2" },
+  { key: "standard-3",  label: "Court 3",   facility: "standard", court: "3" },
+  { key: "standard-4",  label: "Court 4",   facility: "standard", court: "4" },
+  { key: "standard-5",  label: "Court 5",   facility: "standard", court: "5" },
+  { key: "standard-6",  label: "Court 6",   facility: "standard", court: "6" },
+  { key: "single-7",    label: "Court 7",   facility: "single",   court: "7" },
+  { key: "single-8",    label: "Court 8",   facility: "single",   court: "8" },
+  { key: "single-9",    label: "Court 9",   facility: "single",   court: "9" },
+  { key: "table-1",     label: "Table 1",   facility: "table",    court: "Table 1" },
+  { key: "table-2",     label: "Table 2",   facility: "table",    court: "Table 2" },
+  { key: "table-3",     label: "Table 3",   facility: "table",    court: "Table 3" },
+  { key: "table-4",     label: "Table 4",   facility: "table",    court: "Table 4" },
+  { key: "table-5",     label: "Table 5",   facility: "table",    court: "Table 5" },
+];
+
+function gridSlots() {
+  const slots = [];
+  for (let m = GRID_START_MINS; m < GRID_END_MINS + 60; m += 30) {
+    const h = Math.floor(m / 60);
+    const min = m % 60;
+    const ampm = h < 12 ? "AM" : "PM";
+    const displayH = h === 0 ? 12 : h > 12 ? h - 12 : h;
+    const label = `${displayH}:${String(min).padStart(2, "0")} ${ampm}`;
+    slots.push({ mins: m, label });
+  }
+  return slots;
+}
+
+function slotToMinsGrid(timeStr) {
   const match = (timeStr || "").trim().match(/^(\d+):(\d+)\s*(AM|PM)$/i);
   if (!match) return null;
   let h = parseInt(match[1]);
@@ -43,81 +79,123 @@ function parseTimeToISO(timeStr) {
   const ampm = match[3].toUpperCase();
   if (ampm === "PM" && h !== 12) h += 12;
   if (ampm === "AM" && h === 12) h = 0;
-  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:00`;
+  return h * 60 + m;
 }
 
-const STATUS_COLORS = {
-  paid: "#22c55e",
-  pending: "#f59e0b",
-  pending_in_person: "#38bdf8",
-  failed: "#ef4444",
-  expired: "#9ca3af",
-};
+function resourceMatchesBooking(resource, booking) {
+  if (!booking.court) return false;
+  const fac = (booking.facility || "").toLowerCase();
+  const court = String(booking.court);
 
-function bookingToCalendarEvent(b) {
-  if (!b.bookingDate || !b.bookingTime) return null;
-  const parts = b.bookingTime.split(" - ");
-  const startISO = parseTimeToISO(parts[0]?.trim());
-  const endISO = parseTimeToISO(parts[1]?.trim());
-  if (!startISO) return null;
+  if (resource.facility === "standard") {
+    return fac.includes("standard") && court === resource.court;
+  }
+  if (resource.facility === "single") {
+    return fac.includes("single") && court === resource.court;
+  }
+  if (resource.facility === "table") {
+    return fac.includes("table") && court.toLowerCase() === resource.court.toLowerCase();
+  }
+  return false;
+}
 
-  const start = `${b.bookingDate}T${startISO}`;
-  let end;
-  if (endISO) {
-    end = `${b.bookingDate}T${endISO}`;
-  } else {
-    const d = new Date(start);
-    d.setHours(d.getHours() + 1);
-    end = `${b.bookingDate}T${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}:00`;
+function escapeAttr(str) {
+  return String(str || "").replace(/&/g, "&amp;").replace(/"/g, "&quot;");
+}
+
+function renderBookingGrid(bookings) {
+  const container = document.getElementById("bookingGridContainer");
+  if (!container) return;
+
+  const selectedDate = document.getElementById("bookingsDateFilter")?.value;
+  if (!selectedDate) {
+    container.innerHTML = '<p style="color:var(--text-dim);padding:1em 0;">Select a date to view the court schedule.</p>';
+    return;
   }
 
-  const status = String(b.paymentStatus || "pending").toLowerCase();
-  const court = b.court ? ` (${b.court})` : "";
-  const customer = b.customerName || b.customerEmail || "";
-  return {
-    title: `${b.facility || ""}${court}${customer ? " — " + customer : ""}`,
-    start,
-    end,
-    backgroundColor: STATUS_COLORS[status] || "#5da9e9",
-    borderColor: STATUS_COLORS[status] || "#5da9e9",
-    extendedProps: { booking: b },
-  };
-}
+  const dayBookings = bookings.filter((b) => b.bookingDate === selectedDate && b.bookingTime);
+  const slots = gridSlots();
 
-// ---------------------------------------------------------------------------
-// FullCalendar
-// ---------------------------------------------------------------------------
+  // Build lookup: resourceKey -> list of {startMins, endMins, booking}
+  const bookingMap = {};
+  GRID_RESOURCES.forEach((r) => { bookingMap[r.key] = []; });
 
-document.addEventListener("DOMContentLoaded", function () {
-  const calendarEl = document.getElementById("adminFullCalendar");
-  if (!calendarEl || typeof FullCalendar === "undefined") return;
+  dayBookings.forEach((b) => {
+    const parts = (b.bookingTime || "").split(" - ");
+    const startMins = slotToMinsGrid(parts[0]?.trim());
+    const endMins   = slotToMinsGrid(parts[1]?.trim());
+    if (startMins === null) return;
+    const actualEnd = endMins !== null ? endMins : startMins + 60;
 
-  adminCalendar = new FullCalendar.Calendar(calendarEl, {
-    initialView: "timeGridWeek",
-    height: 650,
-    slotDuration: "00:30:00",
-    slotMinTime: "06:00:00",
-    slotMaxTime: "24:00:00",
-    headerToolbar: {
-      left: "prev,next today",
-      center: "title",
-      right: "dayGridMonth,timeGridWeek,timeGridDay",
-    },
-    events: [],
-    eventClick(info) {
-      const b = info.event.extendedProps.booking;
-      if (b) showBookingDetailsModal(b.bookingDate, [b]);
-    },
+    GRID_RESOURCES.forEach((r) => {
+      if (resourceMatchesBooking(r, b)) {
+        bookingMap[r.key].push({ startMins, endMins: actualEnd, booking: b });
+      }
+    });
   });
 
-  adminCalendar.render();
-});
+  // Render table
+  let html = '<table class="booking-grid">';
 
-function refreshCalendar(bookings) {
-  if (!adminCalendar) return;
-  adminCalendar.removeAllEvents();
-  const events = bookings.map(bookingToCalendarEvent).filter(Boolean);
-  adminCalendar.addEventSource(events);
+  // Header row — time labels
+  html += '<thead><tr><th class="grid-court-label">Court / Table</th>';
+  slots.forEach((s) => {
+    if (s.mins % 60 === 0) {
+      html += `<th class="grid-time-header" colspan="2">${s.label}</th>`;
+    }
+  });
+  html += "</tr></thead><tbody>";
+
+  // Sub-header row — :00 / :30 ticks
+  html += '<tr class="grid-subrow"><td class="grid-court-label"></td>';
+  slots.forEach((s) => {
+    const tick = s.mins % 60 === 0 ? ":00" : ":30";
+    html += `<td class="grid-tick">${tick}</td>`;
+  });
+  html += "</tr>";
+
+  // One row per resource
+  GRID_RESOURCES.forEach((r) => {
+    html += `<tr><td class="grid-court-label">${r.label}</td>`;
+    const rowBookings = bookingMap[r.key];
+
+    slots.forEach((s) => {
+      // Is this slot covered by a booking?
+      const match = rowBookings.find(
+        (entry) => s.mins >= entry.startMins && s.mins < entry.endMins
+      );
+      if (match) {
+        const b = match.booking;
+        const status = String(b.paymentStatus || "pending").toLowerCase();
+        const customer = escapeAttr(b.customerName || b.customerEmail || "");
+        const time = escapeAttr(b.bookingTime || "");
+        // Only render cell at the start slot; spanning is handled by colspan logic below
+        // We use a simple colored cell approach (no colspan) for simplicity
+        html += `<td class="grid-cell booked ${status}"
+          data-booking-id="${escapeAttr(String(b.id || ""))}"
+          data-date="${escapeAttr(selectedDate)}"
+          title="${customer} · ${time} · ${status}"
+          onclick="gridCellClick(this)">
+          ${s.mins === match.startMins ? `<span class="grid-cell-label">${customer}</span>` : ""}
+        </td>`;
+      } else {
+        html += `<td class="grid-cell empty"></td>`;
+      }
+    });
+
+    html += "</tr>";
+  });
+
+  html += "</tbody></table>";
+  container.innerHTML = html;
+}
+
+function gridCellClick(cell) {
+  const bookingId = cell.dataset.bookingId;
+  const dateStr = cell.dataset.date;
+  if (!bookingId || !dateStr) return;
+  const booking = lastLoadedBookings.find((b) => String(b.id) === bookingId);
+  if (booking) showBookingDetailsModal(dateStr, [booking]);
 }
 
 // ---------------------------------------------------------------------------
@@ -332,7 +410,7 @@ async function loadAdminBookings() {
     lastLoadedBookings = data.bookings || [];
     renderBookingRows(lastLoadedBookings);
     renderBookedSummary(lastLoadedBookings);
-    refreshCalendar(lastLoadedBookings);
+    renderBookingGrid(lastLoadedBookings);
   } catch (err) {
     setStatus(err.message || "Failed to load bookings.");
   }

@@ -763,6 +763,7 @@ nav {
   color: var(--dim);
   font-weight: 700;
   margin-bottom: 10px;
+  margin-left: 10px;
 }
 .slots-grid {
   display: grid;

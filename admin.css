@@ -55,67 +55,172 @@
   margin-left: 0.5em;
   color: #888;
 }
-/* FullCalendar theming */
-#adminFullCalendar {
-  background: rgba(255, 255, 255, 0.04);
-  border-radius: 12px;
-  padding: 12px;
+/* ── Booking Resource Grid ───────────────────────────────────────────────── */
+
+.booking-grid-scroll {
+  overflow-x: auto;
+  overflow-y: auto;
+  max-height: 540px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
 }
 
-#adminFullCalendar .fc-toolbar-title {
-  font-family: "Barlow Condensed", sans-serif;
-  font-size: 1.4rem;
+.booking-grid {
+  border-collapse: collapse;
+  min-width: 900px;
+  font-size: 0.78rem;
+  table-layout: fixed;
 }
 
-#adminFullCalendar .fc-button {
-  background: rgba(255, 255, 255, 0.08) !important;
-  border-color: var(--line) !important;
-  color: var(--text) !important;
-  font-family: "Outfit", sans-serif;
-  font-size: 0.82rem;
+.booking-grid th,
+.booking-grid td {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  white-space: nowrap;
 }
 
-#adminFullCalendar .fc-button:hover {
-  background: rgba(255, 255, 255, 0.14) !important;
-  border-color: var(--accent) !important;
-}
-
-#adminFullCalendar .fc-button-active,
-#adminFullCalendar .fc-button:focus {
-  background: var(--accent) !important;
-  border-color: var(--accent) !important;
-  color: #041724 !important;
-  outline: none !important;
-  box-shadow: none !important;
-}
-
-#adminFullCalendar .fc-col-header-cell,
-#adminFullCalendar .fc-timegrid-slot-label,
-#adminFullCalendar .fc-daygrid-day-number {
+/* Sticky left column */
+.grid-court-label {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  background: var(--bg-soft);
+  min-width: 90px;
+  max-width: 90px;
+  width: 90px;
+  padding: 6px 8px;
+  font-weight: 600;
   color: var(--text-dim);
-  font-size: 0.82rem;
+  text-align: left;
+  font-size: 0.8rem;
+  border-right: 2px solid var(--line);
 }
 
-#adminFullCalendar .fc-scrollgrid,
-#adminFullCalendar .fc-timegrid-slot,
-#adminFullCalendar .fc-col-header-cell {
-  border-color: var(--line) !important;
+thead .grid-court-label {
+  background: var(--card);
+  color: var(--text);
+  z-index: 3;
 }
 
-#adminFullCalendar .fc-daygrid-day,
-#adminFullCalendar .fc-timegrid-col {
+/* Time header */
+.grid-time-header {
+  background: var(--card);
+  color: var(--text-dim);
+  padding: 6px 0;
+  text-align: center;
+  font-size: 0.72rem;
+  letter-spacing: 0.5px;
+  min-width: 60px;
+}
+
+/* :00 / :30 sub-row */
+.grid-subrow td {
+  background: var(--bg-soft);
+  color: rgba(255, 255, 255, 0.3);
+  font-size: 0.65rem;
+  text-align: center;
+  padding: 2px 0;
+  height: 16px;
+}
+
+.grid-tick {
+  min-width: 30px;
+  width: 30px;
+}
+
+/* Grid cells */
+.grid-cell {
+  width: 30px;
+  min-width: 30px;
+  max-width: 30px;
+  height: 36px;
+  vertical-align: middle;
+  text-align: left;
+  padding: 0 2px;
+  cursor: default;
+  position: relative;
+  overflow: hidden;
+}
+
+.grid-cell.empty {
   background: transparent;
 }
 
-#adminFullCalendar .fc-event {
-  border-radius: 5px;
-  font-size: 0.78rem;
+.grid-cell.booked {
   cursor: pointer;
-  padding: 1px 4px;
 }
 
-#adminFullCalendar .fc-day-today {
-  background: rgba(93, 169, 233, 0.07) !important;
+.grid-cell.booked:hover {
+  filter: brightness(1.25);
+}
+
+.grid-cell.paid {
+  background: rgba(34, 197, 94, 0.35);
+  border-color: rgba(34, 197, 94, 0.5);
+}
+
+.grid-cell.pending {
+  background: rgba(245, 158, 11, 0.35);
+  border-color: rgba(245, 158, 11, 0.5);
+}
+
+.grid-cell.pending_in_person {
+  background: rgba(56, 189, 248, 0.35);
+  border-color: rgba(56, 189, 248, 0.5);
+}
+
+.grid-cell.expired,
+.grid-cell.failed {
+  background: rgba(156, 163, 175, 0.25);
+  border-color: rgba(156, 163, 175, 0.35);
+}
+
+.grid-cell-label {
+  display: block;
+  font-size: 0.62rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: #fff;
+  max-width: 120px;
+  font-weight: 600;
+}
+
+/* Legend */
+.grid-legend {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.legend-pill {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.legend-pill.paid {
+  background: rgba(34, 197, 94, 0.25);
+  color: #86efac;
+}
+
+.legend-pill.pending {
+  background: rgba(245, 158, 11, 0.25);
+  color: #fcd34d;
+}
+
+.legend-pill.pending_in_person {
+  background: rgba(56, 189, 248, 0.25);
+  color: #7dd3fc;
+}
+
+.legend-pill.expired {
+  background: rgba(156, 163, 175, 0.2);
+  color: #d1d5db;
 }
 /* Strong summary box for booked courts/tables */
 .summary-box,

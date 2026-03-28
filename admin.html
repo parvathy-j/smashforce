@@ -10,7 +10,6 @@
       rel="stylesheet"
     />
     <link rel="stylesheet" href="admin.css" />
-    <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css" rel="stylesheet" />
   </head>
   <body>
     <main class="admin-wrap">
@@ -27,10 +26,20 @@
         </div>
       </header>
 
-      <!-- CALENDAR -->
+      <!-- CALENDAR GRID -->
       <section class="card">
-        <h2>Calendar</h2>
-        <div id="adminFullCalendar"></div>
+        <div class="section-head" style="margin-bottom:10px;">
+          <h2>Court Schedule</h2>
+          <div class="grid-legend">
+            <span class="legend-pill paid">Paid</span>
+            <span class="legend-pill pending_in_person">In-Person</span>
+            <span class="legend-pill pending">Pending</span>
+            <span class="legend-pill expired">Expired</span>
+          </div>
+        </div>
+        <div class="booking-grid-scroll">
+          <div id="bookingGridContainer"><p style="color:var(--text-dim);padding:1em 0;">Select a date to view the court schedule.</p></div>
+        </div>
       </section>
 
       <!-- BOOKINGS -->
@@ -110,7 +119,6 @@
       </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
     <script src="admin.js"></script>
   </body>
 </html>
