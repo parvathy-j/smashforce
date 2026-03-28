@@ -950,11 +950,21 @@ function getCheckoutPayload() {
   const email = document.getElementById("f-email").value.trim();
   const phone = document.getElementById("f-phone").value.trim();
   const membershipType = document.getElementById("f-membership").value;
+  // Build all selected slot time ranges
+  const [MORNING, EVENING] = state.date ? getSlotsForDate(state.date) : [[], []];
+  const all = [...MORNING, ...EVENING];
+  const slotRanges = state.selectedSlots
+    .map((start) => {
+      const idx = all.indexOf(start);
+      const end = all[idx + 1] || "";
+      return end ? `${start} - ${end}` : start;
+    });
   return {
     facility: state.facilityType,
     date: state.date ? fmtDate(state.date) : "",
-    time: `${state.startTime} - ${state.endTime}`,
-    duration: state.durationHrs,
+    slots: state.selectedSlots,
+    slotRanges,
+    duration: state.selectedSlots.length,
     court: state.courtLabel,
     name: `${firstName} ${lastName}`.trim(),
     email,
@@ -970,9 +980,8 @@ function persistPendingBooking() {
       facilityLabel: state.facilityLabel,
       courtLabel: state.courtLabel,
       dateLabel: state.dateLabel,
-      startTime: state.startTime,
-      endTime: state.endTime,
-      durationHrs: state.durationHrs,
+      selectedSlots: state.selectedSlots,
+      durationHrs: state.selectedSlots.length,
     },
     email: document.getElementById("f-email").value.trim(),
   };

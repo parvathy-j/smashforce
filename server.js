@@ -2512,10 +2512,19 @@ function normalizeBookingPayload(body = {}, user = null) {
     return { error: promoPricing.promoError };
   }
 
+  // Support multi-slot bookings: accept slots and slotRanges
+  let bookingTime = "";
+  if (Array.isArray(body.slotRanges) && body.slotRanges.length > 0) {
+    bookingTime = body.slotRanges.join(", ");
+  } else if (Array.isArray(body.slots) && body.slots.length > 0) {
+    bookingTime = body.slots.join(", ");
+  } else if (body.time) {
+    bookingTime = String(body.time || "").trim();
+  }
   return {
     facility,
     date: String(body.date || "").trim(),
-    time: String(body.time || "").trim(),
+    time: bookingTime,
     duration: String(body.duration || "").trim(),
     court: String(body.court || "").trim(),
     name: String(body.name || "").trim(),
