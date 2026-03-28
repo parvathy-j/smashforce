@@ -20,7 +20,7 @@ router.get("/api/booked-slots", async (req, res) => {
     // Query bookings for this facility/court/date
     const bookings = await listBookings({ facility, court, bookingDate: date });
 
-    // Define all possible 1-hour slots (morning and evening)
+    // Define all possible slots (every 30 min, morning and evening)
     const ALL_SLOTS = [
       "6:00 AM", "6:30 AM",
       "7:00 AM", "7:30 AM",
@@ -28,12 +28,17 @@ router.get("/api/booked-slots", async (req, res) => {
       "9:00 AM", "9:30 AM",
       "10:00 AM", "10:30 AM",
       "11:00 AM", "11:30 AM",
+      "12:00 PM", "12:30 PM",
+      "1:00 PM", "1:30 PM",
+      "2:00 PM", "2:30 PM",
+      "3:00 PM", "3:30 PM",
+      "4:00 PM", "4:30 PM",
       "5:00 PM", "5:30 PM",
       "6:00 PM", "6:30 PM",
       "7:00 PM", "7:30 PM",
       "8:00 PM", "8:30 PM",
       "9:00 PM", "9:30 PM",
-      "10:00 PM", "10:30 PM"
+      "10:00 PM", "10:30 PM",
     ];
 
     // Helper to parse time string (e.g., "5:00 PM") to minutes since midnight

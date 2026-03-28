@@ -291,36 +291,40 @@ async function selectDate(date, el) {
 function getSlotsForDate(date) {
   const day = date.getDay();
   if (day === 0 || day === 6) {
-    // Saturday/Sunday: 9am-11pm
+    // Saturday/Sunday: 9am-11pm, every 30 min
     const morning = [
-      "9:00 AM",
-      "10:00 AM",
-      "11:00 AM",
-      "12:00 PM",
-      "1:00 PM",
-      "2:00 PM",
-      "3:00 PM",
-      "4:00 PM",
+      "9:00 AM", "9:30 AM",
+      "10:00 AM", "10:30 AM",
+      "11:00 AM", "11:30 AM",
+      "12:00 PM", "12:30 PM",
+      "1:00 PM", "1:30 PM",
+      "2:00 PM", "2:30 PM",
+      "3:00 PM", "3:30 PM",
+      "4:00 PM", "4:30 PM",
     ];
     const evening = [
-      "5:00 PM",
-      "6:00 PM",
-      "7:00 PM",
-      "8:00 PM",
-      "9:00 PM",
-      "10:00 PM",
+      "5:00 PM", "5:30 PM",
+      "6:00 PM", "6:30 PM",
+      "7:00 PM", "7:30 PM",
+      "8:00 PM", "8:30 PM",
+      "9:00 PM", "9:30 PM",
+      "10:00 PM", "10:30 PM",
     ];
     return [morning, evening];
   } else {
-    // Mon-Fri: 6am-9am, 5pm-11pm
-    const morning = ["6:00 AM", "7:00 AM", "8:00 AM"];
+    // Mon-Fri: 6am-9am, 5pm-11pm, every 30 min
+    const morning = [
+      "6:00 AM", "6:30 AM",
+      "7:00 AM", "7:30 AM",
+      "8:00 AM", "8:30 AM",
+    ];
     const evening = [
-      "5:00 PM",
-      "6:00 PM",
-      "7:00 PM",
-      "8:00 PM",
-      "9:00 PM",
-      "10:00 PM",
+      "5:00 PM", "5:30 PM",
+      "6:00 PM", "6:30 PM",
+      "7:00 PM", "7:30 PM",
+      "8:00 PM", "8:30 PM",
+      "9:00 PM", "9:30 PM",
+      "10:00 PM", "10:30 PM",
     ];
     return [morning, evening];
   }
@@ -329,6 +333,20 @@ function getSlotsForDate(date) {
 function renderTimeSlots() {
   const booked = state.bookedSlots || [];
   if (!state.date) return;
+
+  // Clear selection if the selected slot is now in the past
+  if (state.startTime) {
+    const now = new Date();
+    const isToday =
+      state.date.getFullYear() === now.getFullYear() &&
+      state.date.getMonth() === now.getMonth() &&
+      state.date.getDate() === now.getDate();
+    if (isToday && slotToMins(state.startTime) < now.getHours() * 60 + now.getMinutes()) {
+      state.startTime = "";
+      state.endTime = "";
+    }
+  }
+
   const [MORNING, EVENING] = getSlotsForDate(state.date);
   let html = "<div>";
   html += buildSlotGroup("Morning Session", MORNING, booked);
@@ -337,13 +355,31 @@ function renderTimeSlots() {
   document.getElementById("timeContent").innerHTML = html;
 }
 
+function slotToMins(t) {
+  const [time, ampm] = t.split(" ");
+  let [h, m] = time.split(":").map(Number);
+  if (ampm === "PM" && h !== 12) h += 12;
+  if (ampm === "AM" && h === 12) h = 0;
+  return h * 60 + (m || 0);
+}
+
 function buildSlotGroup(label, times, booked) {
+  const now = new Date();
+  const isToday =
+    state.date &&
+    state.date.getFullYear() === now.getFullYear() &&
+    state.date.getMonth() === now.getMonth() &&
+    state.date.getDate() === now.getDate();
+  const nowMins = now.getHours() * 60 + now.getMinutes();
+
   let h = `<div><div class="sess-label">${label}</div><div class="slots-grid">`;
   times.forEach((t) => {
     const isTaken = booked.includes(t);
+    const isPast = isToday && slotToMins(t) < nowMins;
     const isSel = t === state.startTime;
-    h += `<div class="slot${isTaken ? " taken" : ""}${isSel ? " selected" : ""}"
-               ${isTaken ? "" : "onclick=\"selectSlot('" + t + "')\""}>${t}</div>`;
+    const blocked = isTaken || isPast;
+    h += `<div class="slot${isTaken ? " taken" : ""}${isPast ? " past" : ""}${isSel ? " selected" : ""}"
+               ${blocked ? "" : "onclick=\"selectSlot('" + t + "')\""}>${t}</div>`;
   });
   h += "</div></div>";
   return h;
@@ -385,16 +421,18 @@ function setDuration(hrs, btn) {
 }
 
 function calcEndTime(start, hrs) {
-  if (!state.date) return "";
-  const [MORNING, EVENING] = getSlotsForDate(state.date);
-  const all = [...MORNING, ...EVENING];
-  const idx = all.indexOf(start);
-  return (
-    all[idx + 1] ||
-    (state.date.getDay() === 0 || state.date.getDay() === 6
-      ? "11:00 PM"
-      : "9:00 AM")
-  );
+  if (!start) return "";
+  const [time, ampm] = start.split(" ");
+  let [h, m] = time.split(":").map(Number);
+  if (ampm === "PM" && h !== 12) h += 12;
+  if (ampm === "AM" && h === 12) h = 0;
+  const totalMins = h * 60 + (m || 0) + hrs * 60;
+  let endH = Math.floor(totalMins / 60);
+  const endM = totalMins % 60;
+  const endAmpm = endH >= 12 ? "PM" : "AM";
+  if (endH > 12) endH -= 12;
+  if (endH === 0) endH = 12;
+  return `${endH}:${String(endM).padStart(2, "0")} ${endAmpm}`;
 }
 
 function fmtDate(d) {
