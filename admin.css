@@ -222,43 +222,7 @@ thead .grid-court-label {
   background: rgba(156, 163, 175, 0.2);
   color: #d1d5db;
 }
-/* Strong summary box for booked courts/tables */
-.summary-box,
-.booked-summary {
-  background: linear-gradient(120deg, #183a6d 60%, #1e4d91 100%);
-  color: #fff;
-  border-radius: 16px;
-  padding: 2em 2.5em 1.5em 2.5em;
-  margin: 1.5em 0;
-  box-shadow: 0 4px 24px 0 rgba(0, 0, 0, 0.13);
-  font-size: 1.18rem;
-  font-family: "Outfit", sans-serif;
-  letter-spacing: 0.01em;
-  border: 1.5px solid var(--line);
-}
-.summary-box strong,
-.booked-summary strong {
-  font-size: 1.25em;
-  font-weight: 800;
-  letter-spacing: 0.02em;
-  display: block;
-  margin-bottom: 0.7em;
-}
-.summary-box ul,
-.booked-summary ul {
-  margin: 0.2em 0 1em 1.5em;
-  padding: 0;
-}
-.summary-box li,
-.booked-summary li {
-  margin-bottom: 0.18em;
-  font-size: 1.08em;
-}
-.summary-box span,
-.booked-summary span {
-  font-weight: 700;
-  letter-spacing: 0.01em;
-}
+
 :root {
   --bg: #0a2342;
   --bg-soft: #0f2f57;

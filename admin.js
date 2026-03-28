@@ -325,56 +325,6 @@ function renderBookingRows(bookings = []) {
 }
 
 // ---------------------------------------------------------------------------
-// Court Summary
-// ---------------------------------------------------------------------------
-
-function renderBookedSummary(bookings = []) {
-  const summaryDiv = document.getElementById("bookedSummaryContent");
-  if (!summaryDiv) return;
-
-  const selectedDate = document.getElementById("bookingsDateFilter")?.value;
-  if (!selectedDate) {
-    summaryDiv.textContent = "Select a date to see booked courts/tables.";
-    return;
-  }
-
-  const FACILITIES = {
-    "Standard Courts (1-6)": [1, 2, 3, 4, 5, 6],
-    "Single Courts (7-9)": [7, 8, 9],
-    "Multi-Game Tables": ["Table 1", "Table 2", "Table 3", "Table 4", "Table 5"],
-  };
-
-  const booked = {
-    "Standard Courts (1-6)": new Set(),
-    "Single Courts (7-9)": new Set(),
-    "Multi-Game Tables": new Set(),
-  };
-
-  bookings.forEach((b) => {
-    if (b.bookingDate !== selectedDate || !b.facility || !b.court) return;
-    const fac = b.facility.toLowerCase();
-    if (fac.includes("standard")) booked["Standard Courts (1-6)"].add(Number(b.court));
-    else if (fac.includes("single")) booked["Single Courts (7-9)"].add(Number(b.court));
-    else if (fac.includes("table")) booked["Multi-Game Tables"].add(b.court);
-  });
-
-  const lines = [];
-  for (const [fac, courts] of Object.entries(FACILITIES)) {
-    lines.push(`<strong>${fac}:</strong>`);
-    lines.push('<ul style="margin:0 0 0 1em;padding:0;list-style:none;">');
-    courts.forEach((court) => {
-      const isBooked = booked[fac].has(court);
-      const label = typeof court === "number" ? `Court ${court}` : court;
-      lines.push(
-        `<li>${label} <span style="color:${isBooked ? "#f87171" : "#86efac"};font-weight:600;">${isBooked ? "Booked" : "Available"}</span></li>`,
-      );
-    });
-    lines.push("</ul>");
-  }
-  summaryDiv.innerHTML = lines.join("");
-}
-
-// ---------------------------------------------------------------------------
 // Load Bookings
 // ---------------------------------------------------------------------------
 
@@ -409,7 +359,6 @@ async function loadAdminBookings() {
     }
     lastLoadedBookings = data.bookings || [];
     renderBookingRows(lastLoadedBookings);
-    renderBookedSummary(lastLoadedBookings);
     renderBookingGrid(lastLoadedBookings);
   } catch (err) {
     setStatus(err.message || "Failed to load bookings.");
