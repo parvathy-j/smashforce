@@ -22,13 +22,12 @@
           <span id="adminSessionLabel">Checking session…</span>
           <button id="adminLogoutBtn">Logout</button>
           <a href="booking.html" target="_blank">Bookings</a>
-          <a href="receptionist.html" target="_blank">Reception</a>
         </div>
       </header>
 
       <!-- CALENDAR GRID -->
       <section class="card">
-        <div class="section-head" style="margin-bottom:10px;">
+        <div class="section-head" style="margin-bottom: 10px">
           <h2>Court Schedule</h2>
           <div class="grid-legend">
             <span class="legend-pill paid">Paid</span>
@@ -38,7 +37,11 @@
           </div>
         </div>
         <div class="booking-grid-scroll">
-          <div id="bookingGridContainer"><p style="color:var(--text-dim);padding:1em 0;">Select a date to view the court schedule.</p></div>
+          <div id="bookingGridContainer">
+            <p style="color: var(--text-dim); padding: 1em 0">
+              Select a date to view the court schedule.
+            </p>
+          </div>
         </div>
       </section>
 
@@ -85,7 +88,9 @@
               </tr>
             </thead>
             <tbody id="bookingsTableBody">
-              <tr><td colspan="9">Loading...</td></tr>
+              <tr>
+                <td colspan="9">Loading...</td>
+              </tr>
             </tbody>
           </table>
         </div>
@@ -95,7 +100,12 @@
       <section class="card">
         <h2>Membership Lookup</h2>
         <form id="membershipLookupForm" class="inline-form">
-          <input id="membershipLookupEmail" type="email" placeholder="Enter email" required />
+          <input
+            id="membershipLookupEmail"
+            type="email"
+            placeholder="Enter email"
+            required
+          />
           <button class="btn">Check</button>
         </form>
         <div id="membershipLookupResult"></div>
