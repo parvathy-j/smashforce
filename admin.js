@@ -85,16 +85,18 @@ function slotToMinsGrid(timeStr) {
 function resourceMatchesBooking(resource, booking) {
   if (!booking.court) return false;
   const fac = (booking.facility || "").toLowerCase();
-  const court = String(booking.court);
+  // DB stores "Court 1" / "Table 1"; strip the prefix to get the number/label
+  const courtRaw = String(booking.court).replace(/^(court|table)\s*/i, "").trim();
 
   if (resource.facility === "standard") {
-    return fac.includes("standard") && court === resource.court;
+    return fac === "standard" && courtRaw === resource.court;
   }
   if (resource.facility === "single") {
-    return fac.includes("single") && court === resource.court;
+    return fac === "single" && courtRaw === resource.court;
   }
   if (resource.facility === "table") {
-    return fac.includes("table") && court.toLowerCase() === resource.court.toLowerCase();
+    // resource.court is "Table 1" — compare full string
+    return fac === "table" && String(booking.court).toLowerCase() === resource.court.toLowerCase();
   }
   return false;
 }
