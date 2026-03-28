@@ -287,29 +287,44 @@ async function selectDate(date, el) {
 //  TIME SLOTS
 //
 
-
 // Returns [morningSlots, eveningSlots] for a given date
 function getSlotsForDate(date) {
   const day = date.getDay();
   if (day === 0 || day === 6) {
     // Saturday/Sunday: 9am-11pm
     const morning = [
-      "9:00 AM", "10:00 AM", "11:00 AM", "12:00 PM", "1:00 PM", "2:00 PM", "3:00 PM", "4:00 PM"
+      "9:00 AM",
+      "10:00 AM",
+      "11:00 AM",
+      "12:00 PM",
+      "1:00 PM",
+      "2:00 PM",
+      "3:00 PM",
+      "4:00 PM",
     ];
     const evening = [
-      "5:00 PM", "6:00 PM", "7:00 PM", "8:00 PM", "9:00 PM", "10:00 PM"
+      "5:00 PM",
+      "6:00 PM",
+      "7:00 PM",
+      "8:00 PM",
+      "9:00 PM",
+      "10:00 PM",
     ];
     return [morning, evening];
   } else {
     // Mon-Fri: 6am-9am, 5pm-11pm
     const morning = ["6:00 AM", "7:00 AM", "8:00 AM"];
     const evening = [
-      "5:00 PM", "6:00 PM", "7:00 PM", "8:00 PM", "9:00 PM", "10:00 PM"
+      "5:00 PM",
+      "6:00 PM",
+      "7:00 PM",
+      "8:00 PM",
+      "9:00 PM",
+      "10:00 PM",
     ];
     return [morning, evening];
   }
 }
-
 
 function renderTimeSlots() {
   const booked = state.bookedSlots || [];
@@ -370,13 +385,17 @@ function setDuration(hrs, btn) {
   if (state.date) renderTimeSlots();
 }
 
-
 function calcEndTime(start, hrs) {
   if (!state.date) return "";
   const [MORNING, EVENING] = getSlotsForDate(state.date);
   const all = [...MORNING, ...EVENING];
   const idx = all.indexOf(start);
-  return all[idx + 1] || (state.date.getDay() === 0 || state.date.getDay() === 6 ? "11:00 PM" : "9:00 AM");
+  return (
+    all[idx + 1] ||
+    (state.date.getDay() === 0 || state.date.getDay() === 6
+      ? "11:00 PM"
+      : "9:00 AM")
+  );
 }
 
 function fmtDate(d) {
