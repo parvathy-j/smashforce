@@ -8,6 +8,9 @@ window.step2Next = step2Next;
 window.step3Next = step3Next;
 window.goStep = goStep;
 window.maybeGoStep = maybeGoStep;
+window.applyPromoCode = applyPromoCode;
+window.handlePromoInputChange = handlePromoInputChange;
+window.clearAppliedPromo = clearAppliedPromo;
 //
 const STRIPE_PK =
   window.__SFA_CONFIG__?.STRIPE_PUBLISHABLE_KEY ||
@@ -109,6 +112,8 @@ const state = {
   calYear: 0,
   calMonth: 0,
   payMethod: "card",
+  promoCode: "",
+  promoDiscount: 0,
 };
 
 const FACILITIES = {
@@ -776,7 +781,8 @@ async function logoutUser() {
 }
 
 function calcTotal() {
-  return effectivePrice() * state.durationHrs;
+  const subtotal = effectivePrice() * state.durationHrs;
+  return Math.max(0, subtotal - (state.promoDiscount || 0));
 }
 
 function updateSummary() {
@@ -975,6 +981,7 @@ function getCheckoutPayload() {
     phone,
     isMember: Boolean(state.isMember),
     membershipType,
+    promoCode: state.promoCode || "",
   };
 }
 
@@ -1195,6 +1202,80 @@ document
   });
 
 //
+//  PROMO CODE
+//
+
+function setPromoFeedback(message = "", type = "") {
+  const el = document.getElementById("promo-feedback");
+  if (!el) return;
+  el.textContent = message;
+  el.classList.remove("success", "error");
+  if (type) el.classList.add(type);
+}
+
+function clearAppliedPromo({ keepInput = true } = {}) {
+  if (!keepInput) {
+    const input = document.getElementById("f-promo");
+    if (input) input.value = "";
+  }
+  state.promoCode = "";
+  state.promoDiscount = 0;
+  setPromoFeedback("");
+  updateSummary();
+}
+
+function handlePromoInputChange() {
+  const input = document.getElementById("f-promo");
+  const typed = String(input?.value || "").trim().toUpperCase();
+  if (typed !== state.promoCode) {
+    state.promoCode = "";
+    state.promoDiscount = 0;
+    setPromoFeedback("");
+    updateSummary();
+  }
+}
+
+async function applyPromoCode() {
+  const input = document.getElementById("f-promo");
+  const code = String(input?.value || "").trim().toUpperCase();
+
+  if (!code) {
+    setPromoFeedback("Enter a promo code first.", "error");
+    return;
+  }
+  if (!state.facilityType) {
+    setPromoFeedback("Select a facility first.", "error");
+    return;
+  }
+
+  try {
+    const payload = { ...getCheckoutPayload(), promoCode: code };
+    const res = await fetch("/validate-promo", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const data = await readJsonResponse(res);
+    if (!res.ok) throw new Error(data?.error || "Promo code is invalid.");
+
+    state.promoCode = String(data?.promoCode || "");
+    state.promoDiscount = Math.max(0, Number(data?.discountAmount || 0) / 100);
+
+    if (!state.promoCode || state.promoDiscount <= 0) {
+      setPromoFeedback("Promo code applied — no discount for this booking.");
+    } else {
+      setPromoFeedback(`${state.promoCode} applied: -$${state.promoDiscount.toFixed(2)}`, "success");
+    }
+    updateSummary();
+  } catch (err) {
+    state.promoCode = "";
+    state.promoDiscount = 0;
+    setPromoFeedback(err.message || "Could not apply promo code.", "error");
+    updateSummary();
+  }
+}
+
+//
 //  INIT
 //
 updateProgressBar(1);
@@ -1202,13 +1283,3 @@ updateSummary();
 renderAuthState();
 fetchCurrentUser();
 handleCheckoutReturn();
-
-// Expose promo code functions globally for HTML event handlers
-if (typeof window !== "undefined") {
-  window.applyPromoCode =
-    typeof applyPromoCode !== "undefined" ? applyPromoCode : undefined;
-  window.handlePromoInputChange =
-    typeof handlePromoInputChange !== "undefined"
-      ? handlePromoInputChange
-      : undefined;
-}
