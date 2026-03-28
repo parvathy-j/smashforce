@@ -162,33 +162,108 @@ function getMailerTransport() {
 }
 
 async function sendPasswordResetEmail({ toEmail, toName, resetLink }) {
-  const transporter = getMailerTransport();
-  if (!transporter) {
+  if (!resend) {
+    console.warn("Password reset email skipped: RESEND_API_KEY not set.");
     return false;
   }
+  if (!toEmail) return false;
 
-  const safeName = String(toName || "there").trim() || "there";
-  const mailOptions = {
-    from: SMTP_FROM,
-    to: toEmail,
-    subject: "Reset your Smashforce password",
-    text: `Hi ${safeName},\n\nWe received a request to reset your Smashforce password.\n\nUse this link to reset it (valid for 1 hour):\n${resetLink}\n\nIf you did not request this, you can ignore this email.`,
-    html: `<p>Hi ${safeName},</p><p>We received a request to reset your Smashforce password.</p><p><a href="${resetLink}">Reset your password</a> (valid for 1 hour)</p><p>If you did not request this, you can ignore this email.</p>`,
-  };
+  const safeName = escapeHtml(String(toName || "there").trim() || "there");
+  const safeLink = String(resetLink || "");
 
-  if (SMTP_REPLY_TO) {
-    mailOptions.replyTo = SMTP_REPLY_TO;
-  }
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Reset your password</title>
+</head>
+<body style="margin:0;padding:0;background:#0a2342;font-family:'Helvetica Neue',Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#0a2342;padding:40px 0;">
+    <tr>
+      <td align="center">
+        <table width="520" cellpadding="0" cellspacing="0" style="background:#0f2f57;border-radius:16px;overflow:hidden;border:1px solid rgba(255,255,255,0.12);">
+
+          <!-- Header -->
+          <tr>
+            <td style="background:linear-gradient(135deg,#0f2f57 0%,#1a4a8a 100%);padding:36px 40px 28px;text-align:center;border-bottom:1px solid rgba(255,255,255,0.1);">
+              <p style="margin:0 0 6px;font-size:11px;letter-spacing:3px;text-transform:uppercase;color:#5da9e9;font-weight:700;">Smashforce Badminton Centre</p>
+              <h1 style="margin:0;font-size:26px;font-weight:800;color:#ffffff;">Password Reset</h1>
+            </td>
+          </tr>
+
+          <!-- Body -->
+          <tr>
+            <td style="padding:32px 40px 24px;">
+              <p style="margin:0 0 16px;font-size:15px;color:rgba(255,255,255,0.85);">Hi ${safeName},</p>
+              <p style="margin:0 0 24px;font-size:15px;color:rgba(255,255,255,0.7);line-height:1.6;">We received a request to reset your Smashforce password. Click the button below — this link is valid for <strong style="color:#ffffff;">1 hour</strong>.</p>
+              <table cellpadding="0" cellspacing="0" style="margin:0 auto 24px;">
+                <tr>
+                  <td style="background:#5da9e9;border-radius:8px;text-align:center;">
+                    <a href="${safeLink}" style="display:inline-block;padding:14px 32px;font-size:15px;font-weight:700;color:#041724;text-decoration:none;letter-spacing:0.3px;">Reset My Password</a>
+                  </td>
+                </tr>
+              </table>
+              <p style="margin:0;font-size:13px;color:rgba(255,255,255,0.4);line-height:1.6;">If the button doesn't work, copy and paste this link into your browser:<br/>
+                <a href="${safeLink}" style="color:#5da9e9;word-break:break-all;">${safeLink}</a>
+              </p>
+            </td>
+          </tr>
+
+          <!-- Note -->
+          <tr>
+            <td style="padding:0 40px 28px;">
+              <div style="background:rgba(255,255,255,0.04);border-left:3px solid rgba(255,255,255,0.2);border-radius:0 6px 6px 0;padding:12px 16px;">
+                <p style="margin:0;font-size:13px;color:rgba(255,255,255,0.45);">If you didn't request a password reset, you can safely ignore this email. Your password won't change.</p>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="background:rgba(0,0,0,0.2);padding:20px 40px;text-align:center;border-top:1px solid rgba(255,255,255,0.08);">
+              <p style="margin:0;font-size:12px;color:rgba(255,255,255,0.35);">4 Simpson St, Moorabbin VIC 3189 &nbsp;·&nbsp; info@smashforcebadminton.com</p>
+              <p style="margin:6px 0 0;font-size:12px;color:rgba(255,255,255,0.25);">© ${new Date().getFullYear()} Smashforce Badminton Centre</p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+
+  const text = [
+    `Hi ${String(toName || "there").trim()},`,
+    "",
+    "We received a request to reset your Smashforce password.",
+    "",
+    `Reset your password here (valid for 1 hour):`,
+    safeLink,
+    "",
+    "If you didn't request this, you can safely ignore this email.",
+    "",
+    "Smashforce Badminton Centre",
+    "4 Simpson St, Moorabbin VIC 3189",
+    "info@smashforcebadminton.com",
+  ].join("\n");
 
   try {
-    await transporter.sendMail(mailOptions);
+    const { error } = await resend.emails.send({
+      from: BOOKING_FROM_EMAIL,
+      to: [toEmail],
+      subject: "Reset your Smashforce password",
+      html,
+      text,
+    });
+    if (error) {
+      console.error("Password reset email failed:", error.message);
+      return false;
+    }
     return true;
   } catch (err) {
-    console.error("Password reset mail error:", getMailErrorDetails(err));
-    if (SMTP_DEBUG) {
-      console.info("SMTP config summary:", getSmtpConfigSummary());
-    }
-    mailerTransport = null; // reset so next request gets a fresh transport
+    console.error("Password reset email failed:", err.message);
     return false;
   }
 }
