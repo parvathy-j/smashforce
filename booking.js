@@ -1,4 +1,18 @@
-﻿// Expose booking functions globally for inline HTML event handlers
+﻿// === TEMPORARY: Disable all booking UI before 28/03/2026 ===
+(function disableBookingIfBeforeMarch28() {
+  const now = new Date();
+  // Set to your local timezone if needed
+  const cutoff = new Date(2026, 2, 28); // Months are 0-based: 2 = March
+  if (now < cutoff) {
+    document.addEventListener("DOMContentLoaded", function () {
+      // Hide or disable all booking panels
+      document.body.innerHTML = '<div style="color:#fff;text-align:center;padding:80px 20px;font-size:2rem;background:#22334a;">Online booking will open on <b>28 March 2026</b>.<br><br>Thank you for your patience!</div>';
+    });
+  }
+})();
+// === END TEMPORARY BLOCK ===
+
+// Expose booking functions globally for inline HTML event handlers
 window.selectFacility = selectFacility;
 window.selectCourt = selectCourt;
 window.selectTable = selectTable;
