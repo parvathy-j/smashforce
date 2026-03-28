@@ -395,8 +395,8 @@ async function sendBookingConfirmationEmail({
 function loadPromoCodes() {
   const raw = String(process.env.PROMO_CODES || "").trim();
   let normalized = {};
-  // Always add a test promo code for $1 payments
-  normalized["TESTPAY"] = { type: "fixed", value: 1499, minAmount: 0 };
+  // Always add a test promo code — makes booking free (bypasses Stripe)
+  normalized["TESTPAY"] = { type: "fixed_final", value: 0, minAmount: 0 };
   if (!raw) {
     return normalized;
   }
@@ -470,6 +470,18 @@ function applyPromoDiscount(baseAmountCents, promo = null) {
       amountAfterDiscount: base,
       appliedPromoCode: "",
       promoError: `Promo code requires a minimum order of $${(minAmount / 100).toFixed(2)}.`,
+    };
+  }
+
+  // fixed_final: override the final charge to an exact amount (0 = fully free)
+  if (promo.rule.type === "fixed_final") {
+    const finalAmount = Math.max(0, Math.round(Number(promo.rule.value || 0)));
+    const discount = Math.max(0, base - finalAmount);
+    return {
+      amountBeforeDiscount: base,
+      discountAmount: discount,
+      amountAfterDiscount: finalAmount,
+      appliedPromoCode: promo.code,
     };
   }
 
@@ -2587,6 +2599,39 @@ app.post(
         return res.status(400).json({ error: payload.error });
       }
 
+      // Free booking (e.g. TESTPAY promo): bypass Stripe entirely
+      if (payload.amount === 0) {
+        bookingId = await insertBooking({
+          userId: payload.memberUserId || null,
+          name: payload.name,
+          email: payload.email,
+          phone: payload.phone,
+          facility: payload.facility,
+          date: payload.date,
+          time: payload.time,
+          duration: payload.duration,
+          court: payload.court,
+          membershipType: payload.membershipType,
+          appliedMembership: payload.appliedMembership,
+          amount: 0,
+          currency: "aud",
+          paymentStatus: "paid",
+          source: "promo",
+        });
+        const ref = `SFA-${String(bookingId).slice(-8).toUpperCase()}`;
+        sendBookingConfirmationEmail({
+          to: payload.email,
+          name: payload.name,
+          facility: payload.facility,
+          court: payload.court,
+          date: payload.date,
+          time: payload.time,
+          duration: payload.duration,
+          ref,
+        });
+        return res.json({ free: true, bookingId: ref });
+      }
+
       // Reserve the booking first so we never lose a user-intended booking due to later DB errors.
       bookingId = await insertBooking({
         userId: payload.memberUserId || null,
@@ -3055,4 +3100,4 @@ if (require.main === module) {
   startServer();
 }
 
-module.exports = { app, startServer };
+module.exports = { app, startServer, listBookings };

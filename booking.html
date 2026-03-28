@@ -2342,6 +2342,13 @@
             throw new Error(data?.error || "Could not start checkout.");
           }
 
+          // Free booking (promo reduced total to $0) — no Stripe needed
+          if (data?.free) {
+            sessionStorage.removeItem(PENDING_BOOKING_KEY);
+            showSuccess(data.bookingId || "");
+            return;
+          }
+
           if (!data?.url) {
             throw new Error("Missing Stripe checkout URL from server.");
           }
