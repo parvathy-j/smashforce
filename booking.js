@@ -107,7 +107,8 @@ const state = {
   dateLabel: "",
   startTime: "",
   endTime: "",
-  durationHrs: 1,
+  selectedSlots: [],   // ordered array of selected 30-min slot strings
+  durationHrs: 0,
   total: 0,
   calYear: 0,
   calMonth: 0,
@@ -282,6 +283,8 @@ async function selectDate(date, el) {
   // Reset time
   state.startTime = "";
   state.endTime = "";
+  state.selectedSlots = [];
+  state.durationHrs = 0;
   // Fetch booked slots and render
   state.bookedSlots = await getBooked(fmtDate(date));
   renderTimeSlots();
@@ -339,23 +342,41 @@ function renderTimeSlots() {
   const booked = state.bookedSlots || [];
   if (!state.date) return;
 
-  // Clear selection if the selected slot is now in the past
-  if (state.startTime) {
+  // Clear any selected slots that are now in the past
+  if (state.selectedSlots.length > 0) {
     const now = new Date();
     const isToday =
       state.date.getFullYear() === now.getFullYear() &&
       state.date.getMonth() === now.getMonth() &&
       state.date.getDate() === now.getDate();
-    if (isToday && slotToMins(state.startTime) < now.getHours() * 60 + now.getMinutes()) {
+    if (isToday) {
+      const nowMins = now.getHours() * 60 + now.getMinutes();
+      state.selectedSlots = state.selectedSlots.filter((t) => slotToMins(t) >= nowMins);
+    }
+    if (state.selectedSlots.length > 0) {
+      state.startTime = state.selectedSlots[0];
+      state.endTime = calcEndTime(state.selectedSlots[state.selectedSlots.length - 1], 0.5);
+      state.durationHrs = state.selectedSlots.length * 0.5;
+    } else {
       state.startTime = "";
       state.endTime = "";
+      state.durationHrs = 0;
     }
   }
 
   const [MORNING, EVENING] = getSlotsForDate(state.date);
+  const n = state.selectedSlots.length;
+  const hintText = n === 0
+    ? "Select slots — minimum 1 hour (2 slots)"
+    : n === 1
+    ? "Select 1 more slot to reach the 1-hour minimum"
+    : `${n} slots selected · ${(n * 0.5).toFixed(1).replace(".0", "")} hr${n * 0.5 !== 1 ? "s" : ""} · click a selected slot to deselect`;
+  const hintClass = n === 1 ? "slots-min-hint warn" : "slots-min-hint";
+
   let html = "<div>";
   html += buildSlotGroup("Morning Session", MORNING, booked);
   html += buildSlotGroup("Evening Session", EVENING, booked);
+  html += `<div class="${hintClass}">${hintText}</div>`;
   html += "</div>";
   document.getElementById("timeContent").innerHTML = html;
 }
@@ -368,6 +389,13 @@ function slotToMins(t) {
   return h * 60 + (m || 0);
 }
 
+// Returns all available slot strings for the current date as a flat array
+function getAllFlatSlots() {
+  if (!state.date) return [];
+  const [morning, evening] = getSlotsForDate(state.date);
+  return [...morning, ...evening];
+}
+
 function buildSlotGroup(label, times, booked) {
   const now = new Date();
   const isToday =
@@ -377,13 +405,26 @@ function buildSlotGroup(label, times, booked) {
     state.date.getDate() === now.getDate();
   const nowMins = now.getHours() * 60 + now.getMinutes();
 
+  const firstSel = state.selectedSlots[0];
+  const lastSel = state.selectedSlots[state.selectedSlots.length - 1];
+
   let h = `<div><div class="sess-label">${label}</div><div class="slots-grid">`;
   times.forEach((t) => {
     const isTaken = booked.includes(t);
     const isPast = isToday && slotToMins(t) < nowMins;
-    const isSel = t === state.startTime;
     const blocked = isTaken || isPast;
-    h += `<div class="slot${isTaken ? " taken" : ""}${isPast ? " past" : ""}${isSel ? " selected" : ""}"
+    const selIdx = state.selectedSlots.indexOf(t);
+    const isSel = selIdx !== -1;
+    const isFirst = t === firstSel;
+    const isLast = t === lastSel;
+    let cls = "slot";
+    if (isTaken) cls += " taken";
+    if (isPast) cls += " past";
+    if (isSel) cls += " selected";
+    if (isFirst) cls += " sel-first";
+    if (isLast && !isFirst) cls += " sel-last";
+    if (isSel && !isFirst && !isLast) cls += " sel-mid";
+    h += `<div class="${cls}"
                ${blocked ? "" : "onclick=\"selectSlot('" + t + "')\""}>${t}</div>`;
   });
   h += "</div></div>";
@@ -392,8 +433,62 @@ function buildSlotGroup(label, times, booked) {
 
 function selectSlot(time) {
   clearFormError();
-  state.startTime = time;
-  state.endTime = calcEndTime(time, state.durationHrs);
+  const allSlots = getAllFlatSlots();
+  const booked = state.bookedSlots || [];
+  const clickedIdx = allSlots.indexOf(time);
+
+  if (state.selectedSlots.length === 0) {
+    state.selectedSlots = [time];
+  } else {
+    const firstIdx = allSlots.indexOf(state.selectedSlots[0]);
+    const lastIdx  = allSlots.indexOf(state.selectedSlots[state.selectedSlots.length - 1]);
+
+    if (clickedIdx === firstIdx && clickedIdx === lastIdx) {
+      // Only one slot selected — deselect it
+      state.selectedSlots = [];
+    } else if (clickedIdx === lastIdx) {
+      // Shrink from end
+      state.selectedSlots = state.selectedSlots.slice(0, -1);
+    } else if (clickedIdx === firstIdx) {
+      // Shrink from start
+      state.selectedSlots = state.selectedSlots.slice(1);
+    } else if (clickedIdx > firstIdx && clickedIdx < lastIdx) {
+      // Clicked inside range — truncate to this point
+      state.selectedSlots = allSlots.slice(firstIdx, clickedIdx + 1);
+    } else if (clickedIdx > lastIdx) {
+      // Clicked after selection — try to extend range
+      const now = new Date();
+      const isToday = state.date && state.date.toDateString() === now.toDateString();
+      const nowMins = now.getHours() * 60 + now.getMinutes();
+      let canExtend = true;
+      for (let i = lastIdx + 1; i <= clickedIdx; i++) {
+        const t = allSlots[i];
+        const prevT = allSlots[i - 1];
+        // Slots must be 30 minutes apart (no cross-session gaps e.g. 8:30 AM → 5:00 PM)
+        if (slotToMins(t) - slotToMins(prevT) !== 30) { canExtend = false; break; }
+        if (booked.includes(t) || (isToday && slotToMins(t) < nowMins)) { canExtend = false; break; }
+      }
+      if (canExtend) {
+        state.selectedSlots = allSlots.slice(firstIdx, clickedIdx + 1);
+      } else {
+        state.selectedSlots = [time];
+      }
+    } else {
+      // Clicked before or non-adjacent — start fresh
+      state.selectedSlots = [time];
+    }
+  }
+
+  if (state.selectedSlots.length > 0) {
+    state.startTime = state.selectedSlots[0];
+    state.endTime = calcEndTime(state.selectedSlots[state.selectedSlots.length - 1], 0.5);
+    state.durationHrs = state.selectedSlots.length * 0.5;
+  } else {
+    state.startTime = "";
+    state.endTime = "";
+    state.durationHrs = 0;
+  }
+
   renderTimeSlots();
   updateSummary();
 }
@@ -781,14 +876,18 @@ async function logoutUser() {
 }
 
 function calcTotal() {
-  const subtotal = effectivePrice() * state.durationHrs;
+  const hrs = state.selectedSlots.length * 0.5;
+  const subtotal = effectivePrice() * hrs;
   return Math.max(0, subtotal - (state.promoDiscount || 0));
 }
 
 function updateSummary() {
   const total = calcTotal();
   state.total = total;
-  const dur = `1 hr`;
+  const hrs = state.selectedSlots.length * 0.5;
+  const dur = hrs > 0
+    ? `${hrs % 1 === 0 ? hrs : hrs.toFixed(1)} hr${hrs !== 1 ? "s" : ""}`
+    : "-";
   const timeStr = state.startTime
     ? `${state.startTime} - ${state.endTime}`
     : "-";
@@ -798,14 +897,14 @@ function updateSummary() {
   setText("sum-court", state.courtLabel || "-");
   setText("sum-date", state.dateLabel || "-");
   setText("sum-time", timeStr);
-  setText("sum-dur", state.startTime ? dur : "-");
+  setText("sum-dur", state.selectedSlots.length >= 2 ? dur : "-");
   setText(
     "sum-rate",
     state.facilityLabel
       ? `$${effectivePrice()}/hr${state.isMember ? " (member)" : ""}`
       : "-",
   );
-  setText("sum-total", state.startTime ? `$${total.toFixed(2)}` : "$0.00");
+  setText("sum-total", state.selectedSlots.length >= 2 ? `$${total.toFixed(2)}` : "$0.00");
 
   // Step 3 sidebar
   setText("s3-fac", state.facilityLabel || "-");
@@ -868,8 +967,12 @@ function step2Next() {
     showFormError("Please select a date.");
     return;
   }
-  if (!state.startTime) {
-    showFormError("Please select a start time.");
+  if (state.selectedSlots.length === 0) {
+    showFormError("Please select a time slot.");
+    return;
+  }
+  if (state.selectedSlots.length < 2) {
+    showFormError("Minimum booking is 1 hour — please select at least 2 slots.");
     return;
   }
   goStep(3);
@@ -931,8 +1034,8 @@ function populateConfirm() {
   setText("c-court", state.courtLabel);
   setText("c-date", state.dateLabel);
   setText("c-time", `${state.startTime} - ${state.endTime}`);
-  // Always show 1 hr for duration
-  setText("c-dur", "1 hr");
+  const confHrs = state.selectedSlots.length * 0.5;
+  setText("c-dur", confHrs > 0 ? `${confHrs % 1 === 0 ? confHrs : confHrs.toFixed(1)} hr${confHrs !== 1 ? "s" : ""}` : "-");
   setText("c-mem", memLabels[memSel] || "None");
   updateSummary();
 }
@@ -993,6 +1096,7 @@ function persistPendingBooking() {
       dateLabel: state.dateLabel,
       startTime: state.startTime,
       endTime: state.endTime,
+      selectedSlots: state.selectedSlots,
       durationHrs: state.durationHrs,
     },
     email: document.getElementById("f-email").value.trim(),
@@ -1014,7 +1118,8 @@ function restorePendingBooking() {
       state.dateLabel = pending.state.dateLabel || "";
       state.startTime = pending.state.startTime || "";
       state.endTime = pending.state.endTime || "";
-      state.durationHrs = Number(pending.state.durationHrs || 0.5);
+      state.selectedSlots = Array.isArray(pending.state.selectedSlots) ? pending.state.selectedSlots : [];
+      state.durationHrs = Number(pending.state.durationHrs || 0);
     }
     if (pending.email) {
       const emailInput = document.getElementById("f-email");

@@ -789,6 +789,28 @@ nav {
   background: var(--lime);
   border-color: var(--lime);
   color: var(--navy);
+  font-weight: 700;
+}
+/* Range selection visual — first/last get rounded end, mid slots show as filled band */
+.slot.sel-first {
+  border-radius: 7px 7px 7px 7px;
+}
+.slot.sel-mid {
+  opacity: 0.82;
+}
+.slot.sel-last {
+  border-radius: 7px 7px 7px 7px;
+}
+/* Minimum-slots hint */
+.slots-min-hint {
+  font-size: 0.72rem;
+  color: var(--dim);
+  text-align: center;
+  margin-top: 8px;
+  letter-spacing: 0.3px;
+}
+.slots-min-hint.warn {
+  color: #f59e0b;
 }
 .slot.taken {
   opacity: 0.3;
