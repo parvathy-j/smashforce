@@ -406,9 +406,89 @@ const MEMBERSHIP_PRICES = {
     amount: 7900,
   },
 };
-// Booked slots API
-const bookedSlotsApi = require("./api-booked-slots");
-app.use(bookedSlotsApi);
+// ---------------------------------------------------------------------------
+// Booked slots API — inlined to avoid circular-dependency with api-booked-slots.js
+// GET /api/booked-slots?facility=standard&court=1&date=2026-03-29
+// ---------------------------------------------------------------------------
+const ALL_BOOKING_SLOTS = [
+  "6:00 AM",  "6:30 AM",  "7:00 AM",  "7:30 AM",
+  "8:00 AM",  "8:30 AM",  "9:00 AM",  "9:30 AM",
+  "10:00 AM", "10:30 AM", "11:00 AM", "11:30 AM",
+  "12:00 PM", "12:30 PM", "1:00 PM",  "1:30 PM",
+  "2:00 PM",  "2:30 PM",  "3:00 PM",  "3:30 PM",
+  "4:00 PM",  "4:30 PM",  "5:00 PM",  "5:30 PM",
+  "6:00 PM",  "6:30 PM",  "7:00 PM",  "7:30 PM",
+  "8:00 PM",  "8:30 PM",  "9:00 PM",  "9:30 PM",
+  "10:00 PM", "10:30 PM",
+];
+
+function slotStringToMins(t) {
+  const m = String(t || "").trim().match(/^(\d+):(\d+)\s*(AM|PM)$/i);
+  if (!m) return null;
+  let h = parseInt(m[1], 10);
+  const min = parseInt(m[2], 10);
+  const ampm = m[3].toUpperCase();
+  if (ampm === "PM" && h !== 12) h += 12;
+  if (ampm === "AM" && h === 12) h = 0;
+  return h * 60 + min;
+}
+
+app.get("/api/booked-slots", async (req, res) => {
+  try {
+    const facility = String(req.query.facility || "").trim().toLowerCase();
+    const courtNum = String(req.query.court   || "").trim();
+    const date     = String(req.query.date    || "").trim();
+
+    if (!facility || !courtNum || !date) {
+      return res.status(400).json({ error: "Missing facility, court, or date" });
+    }
+
+    // Build court label exactly as stored in DB ("Court 1", "Table 1")
+    const courtLabel = facility === "table"
+      ? `Table ${courtNum}`
+      : `Court ${courtNum}`;
+
+    // Query only active bookings for this exact court on this date
+    const rows = await dbAll(
+      `SELECT booking_time FROM bookings
+       WHERE LOWER(facility)    = ?
+         AND LOWER(court)       = ?
+         AND booking_date       = ?
+         AND payment_status IN ('paid', 'pending', 'pending_in_person')`,
+      [facility, courtLabel.toLowerCase(), date],
+    );
+
+    // Expand each booking's time range into the 30-min slots it covers
+    const blocked = new Set();
+    for (const row of rows) {
+      const bookingTime = String(row.booking_time || "");
+      const rangeMatch  = bookingTime.match(
+        /([0-9]+:[0-9]+\s*[AP]M)\s*-\s*([0-9]+:[0-9]+\s*[AP]M)/i,
+      );
+      if (!rangeMatch) {
+        if (ALL_BOOKING_SLOTS.includes(bookingTime)) blocked.add(bookingTime);
+        continue;
+      }
+      const bookStart = slotStringToMins(rangeMatch[1]);
+      const bookEnd   = slotStringToMins(rangeMatch[2]);
+      if (bookStart === null || bookEnd === null) continue;
+
+      for (const slot of ALL_BOOKING_SLOTS) {
+        const slotStart = slotStringToMins(slot);
+        if (slotStart === null) continue;
+        // Block slot if its 30-min window overlaps [bookStart, bookEnd)
+        if (slotStart < bookEnd && slotStart + 30 > bookStart) {
+          blocked.add(slot);
+        }
+      }
+    }
+
+    return res.json({ booked: Array.from(blocked) });
+  } catch (err) {
+    console.error("Booked slots API error:", err.message);
+    return res.status(500).json({ error: "Failed to fetch booked slots" });
+  }
+});
 // Test Resend email endpoint (now correctly placed after app initialization)
 app.get("/test-email", async (req, res) => {
   try {
@@ -3327,16 +3407,5 @@ if (require.main === module) {
 
 // Returns booking_time strings for active bookings on a specific court/date.
 // Used by api-booked-slots.js; keeps the SQL filter in server.js where dbAll lives.
-async function getActiveBookingTimes({ facility, courtLabel, date }) {
-  const rows = await dbAll(
-    `SELECT booking_time FROM bookings
-     WHERE LOWER(facility)      = LOWER(?)
-       AND LOWER(court)         = LOWER(?)
-       AND booking_date         = ?
-       AND payment_status IN ('paid', 'pending', 'pending_in_person')`,
-    [facility, courtLabel, date],
-  );
-  return rows.map((r) => String(r.booking_time || ""));
-}
 
-module.exports = { app, startServer, listBookings, getActiveBookingTimes };
+module.exports = { app, startServer, listBookings };
