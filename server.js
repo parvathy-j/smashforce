@@ -647,6 +647,132 @@ async function sendBookingConfirmationEmail({
   }
 }
 
+async function sendMembershipConfirmationEmail({ to, name, membershipType }) {
+  if (!resend) {
+    console.warn("Membership confirmation email skipped: RESEND_API_KEY not set.");
+    return false;
+  }
+  if (!to) return false;
+
+  const safeName = escapeHtml(String(name || "Member").trim());
+  const planLabels = {
+    court: { title: "Court Membership", price: "$49/month", perks: ["Standard Courts: $22/hr (Save $3/hr)", "Single Courts: $12/hr (Save $3/hr)", "Priority booking access"] },
+    "all-access": { title: "All Access Membership", price: "$79/month", perks: ["Standard Courts: $22/hr (Save $3/hr)", "Single Courts: $12/hr (Save $3/hr)", "Multi-Game Tables: $8/hr (Save $7/hr)", "Priority booking + guest discounts"] },
+  };
+  const plan = planLabels[membershipType] || { title: "Membership", price: "-", perks: [] };
+  const cancelUrl = `${APP_URL}/account.html`;
+  const perksHtml = plan.perks.map(p => `
+    <tr><td style="padding:9px 0;border-bottom:1px solid rgba(255,255,255,0.08);font-size:14px;color:#ffffff;">
+      <span style="color:#5da9e9;margin-right:8px;">✓</span>${escapeHtml(p)}
+    </td></tr>`).join("");
+
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Membership Confirmed</title>
+</head>
+<body style="margin:0;padding:0;background:#0a2342;font-family:'Helvetica Neue',Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#0a2342;padding:40px 0;">
+    <tr>
+      <td align="center">
+        <table width="560" cellpadding="0" cellspacing="0" style="background:#0f2f57;border-radius:16px;overflow:hidden;border:1px solid rgba(255,255,255,0.12);">
+
+          <!-- Header -->
+          <tr>
+            <td style="background:linear-gradient(135deg,#0f2f57 0%,#1a4a8a 100%);padding:36px 40px 28px;text-align:center;border-bottom:1px solid rgba(255,255,255,0.1);">
+              <p style="margin:0 0 6px;font-size:11px;letter-spacing:3px;text-transform:uppercase;color:#5da9e9;font-weight:700;">Smashforce Badminton Centre</p>
+              <h1 style="margin:0;font-size:28px;font-weight:800;color:#ffffff;">Membership Activated!</h1>
+              <p style="margin:10px 0 0;font-size:15px;color:rgba(255,255,255,0.65);">Welcome aboard, ${safeName}.</p>
+            </td>
+          </tr>
+
+          <!-- Plan badge -->
+          <tr>
+            <td style="padding:24px 40px 0;text-align:center;">
+              <div style="display:inline-block;background:rgba(93,169,233,0.15);border:1px solid rgba(93,169,233,0.35);border-radius:8px;padding:12px 28px;">
+                <p style="margin:0;font-size:11px;letter-spacing:2px;text-transform:uppercase;color:#5da9e9;">Your Plan</p>
+                <p style="margin:4px 0 0;font-size:20px;font-weight:800;color:#ffffff;">${escapeHtml(plan.title)}</p>
+                <p style="margin:4px 0 0;font-size:14px;color:rgba(255,255,255,0.55);">${escapeHtml(plan.price)} · No lock-in</p>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Perks -->
+          <tr>
+            <td style="padding:28px 40px 8px;">
+              <p style="margin:0 0 14px;font-size:12px;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,0.45);">Your member benefits</p>
+              <table width="100%" cellpadding="0" cellspacing="0">${perksHtml}</table>
+            </td>
+          </tr>
+
+          <!-- Cancel notice -->
+          <tr>
+            <td style="padding:16px 40px 28px;">
+              <div style="background:rgba(93,169,233,0.08);border-left:3px solid #5da9e9;border-radius:0 6px 6px 0;padding:12px 16px;">
+                <p style="margin:0;font-size:13px;color:rgba(255,255,255,0.75);">
+                  You can <strong style="color:#ffffff;">cancel your membership anytime</strong> with no fees.
+                  Simply visit your account page:
+                </p>
+                <p style="margin:10px 0 0;text-align:center;">
+                  <a href="${cancelUrl}" style="display:inline-block;background:#1f6fb2;color:#ffffff;font-size:13px;font-weight:700;text-decoration:none;padding:10px 22px;border-radius:8px;">Manage My Membership →</a>
+                </p>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="background:rgba(0,0,0,0.2);padding:20px 40px;text-align:center;border-top:1px solid rgba(255,255,255,0.08);">
+              <p style="margin:0;font-size:12px;color:rgba(255,255,255,0.35);">4 Simpson St, Moorabbin VIC 3189 &nbsp;·&nbsp; info@smashforcebadminton.com</p>
+              <p style="margin:6px 0 0;font-size:12px;color:rgba(255,255,255,0.25);">© ${new Date().getFullYear()} Smashforce Badminton Centre</p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+
+  const text = [
+    `Hi ${String(name || "Member").trim()},`,
+    "",
+    `Your ${plan.title} is now active!`,
+    `Price: ${plan.price} · No lock-in contract`,
+    "",
+    "Your benefits:",
+    ...plan.perks.map(p => `  ✓ ${p}`),
+    "",
+    "Cancel anytime — no fees. Visit your account page to manage your membership:",
+    cancelUrl,
+    "",
+    "Smashforce Badminton Centre",
+    "4 Simpson St, Moorabbin VIC 3189",
+    "info@smashforcebadminton.com",
+  ].join("\n");
+
+  try {
+    const { error } = await resend.emails.send({
+      from: BOOKING_FROM_EMAIL,
+      to: [to],
+      subject: `${plan.title} Activated – Smashforce`,
+      html,
+      text,
+    });
+    if (error) {
+      console.error("Membership confirmation email failed:", error.message);
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.error("Membership confirmation email failed:", err.message);
+    return false;
+  }
+}
+
 function loadPromoCodes() {
   const raw = String(process.env.PROMO_CODES || "").trim();
   let normalized = {};
@@ -3250,11 +3376,20 @@ app.get("/checkout-session-status", async (req, res) => {
     if (session.payment_status === "paid") {
       const md = session.metadata || {};
       if (md.checkoutType === "membership" && md.memberUserId && md.membershipType) {
-        // Membership checkout — activate the membership
+        // Membership checkout — activate the membership (idempotent)
+        const userRow = await dbAll("SELECT membership_type FROM users WHERE id = ? LIMIT 1", [md.memberUserId]);
+        const alreadyActive = userRow?.[0]?.membership_type === md.membershipType;
         await dbRun(
           "UPDATE users SET membership_type = ? WHERE id = ?",
           [md.membershipType, md.memberUserId],
         );
+        if (!alreadyActive) {
+          const memberEmail = session.customer_details?.email || md.email || "";
+          const memberName = session.customer_details?.name || md.name || "Member";
+          if (memberEmail) {
+            sendMembershipConfirmationEmail({ to: memberEmail, name: memberName, membershipType: md.membershipType });
+          }
+        }
       } else {
         await updateBookingByCheckoutSession(session.id, "paid");
       }
@@ -3406,6 +3541,11 @@ app.post(
             "UPDATE users SET membership_type = ? WHERE id = ?",
             [md.membershipType, md.memberUserId],
           );
+          const memberEmail = session.customer_details?.email || md.email || "";
+          const memberName = session.customer_details?.name || md.name || "Member";
+          if (memberEmail) {
+            sendMembershipConfirmationEmail({ to: memberEmail, name: memberName, membershipType: md.membershipType });
+          }
         } else {
           await updateBookingByCheckoutSession(session.id, "paid");
         }
