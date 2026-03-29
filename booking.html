@@ -1139,7 +1139,7 @@
         renderCalendar();
       }
 
-      function selectDate(date, el) {
+      async function selectDate(date, el) {
         state.date = date;
         // Format label
         const days = [
@@ -1164,6 +1164,21 @@
         state.startTime = "";
         state.endTime = "";
         state.selectedSlots = [];
+
+        // Fetch live booked slots from server before rendering
+        const dateStr = `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
+        if (state.facilityType && state.courtNum) {
+          try {
+            const res = await fetch(`/api/booked-slots?facility=${encodeURIComponent(state.facilityType)}&court=${encodeURIComponent(state.courtNum)}&date=${encodeURIComponent(dateStr)}`);
+            const data = res.ok ? await res.json() : { booked: [] };
+            state.bookedSlots = Array.isArray(data.booked) ? data.booked : [];
+          } catch {
+            state.bookedSlots = [];
+          }
+        } else {
+          state.bookedSlots = [];
+        }
+
         renderTimeSlots();
         updateSummary();
       }
@@ -1234,8 +1249,7 @@
 
       function renderTimeSlots() {
         if (!state.date) return;
-        const dateStr = fmtDate(state.date);
-        const booked = getBooked(dateStr);
+        const booked = state.bookedSlots || [];
 
         if (
           state.startTime &&
