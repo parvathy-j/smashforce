@@ -157,7 +157,7 @@
 
       function getCourtNum(facility, courtVal) {
         if (facility === "table") return String(courtVal).replace(/^Table\s*/i, "");
-        return String(courtVal);
+        return String(courtVal).replace(/^Court\s*/i, "");
       }
 
       async function fetchBooked() {
