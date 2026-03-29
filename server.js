@@ -1553,8 +1553,8 @@ function buildPasswordResetLink(token) {
     baseUrl = fallback;
   }
 
-  if (!baseUrl.pathname || baseUrl.pathname === "/") {
-    baseUrl.pathname = "/booking.html";
+  if (!baseUrl.pathname || baseUrl.pathname === "/" || baseUrl.pathname === "/booking.html") {
+    baseUrl.pathname = "/smash-force-academy.html";
   }
 
   baseUrl.searchParams.set("auth", "reset");

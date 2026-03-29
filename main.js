@@ -709,3 +709,19 @@ signupForm?.addEventListener("submit", async (event) => {
     }
   }
 });
+
+// Handle password reset links: ?auth=reset&reset_token=<token>
+(function applyResetFromQuery() {
+  const params = new URLSearchParams(window.location.search);
+  const resetToken = String(params.get("reset_token") || "").trim();
+  if (!resetToken) return;
+
+  const tokenInput = document.getElementById("resetToken");
+  if (tokenInput) tokenInput.value = resetToken;
+
+  // Clean the token out of the URL so refreshing doesn't re-trigger
+  const cleanUrl = window.location.pathname;
+  history.replaceState({}, "", cleanUrl);
+
+  openAuthModal("reset");
+})();
