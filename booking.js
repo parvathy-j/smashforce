@@ -85,9 +85,58 @@ function setupPaymentRequest(amountCents) {
     }
   });
   paymentRequest.on("paymentmethod", async (ev) => {
-    // Handle wallet payment  same flow as card
-    ev.complete("success");
-    showSuccess();
+    try {
+      persistPendingBooking();
+      const checkoutPayload = getCheckoutPayload();
+
+      const response = await fetch("/create-checkout-session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(checkoutPayload),
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        ev.complete("fail");
+        document.getElementById("stripe-error").textContent =
+          data?.error || "Payment failed. Please try again.";
+        return;
+      }
+
+      // Confirm the payment intent with the wallet payment method
+      if (data?.clientSecret) {
+        const { error } = await stripe.confirmCardPayment(
+          data.clientSecret,
+          { payment_method: ev.paymentMethod.id },
+          { handleActions: false },
+        );
+        if (error) {
+          ev.complete("fail");
+          document.getElementById("stripe-error").textContent = error.message;
+          return;
+        }
+      }
+
+      ev.complete("success");
+      sessionStorage.removeItem(PENDING_BOOKING_KEY);
+
+      if (data?.free) {
+        showSuccess(data.bookingId || "");
+        return;
+      }
+
+      // For wallet payments via Checkout redirect, follow the URL
+      if (data?.url) {
+        window.location.href = data.url;
+        return;
+      }
+
+      showSuccess(data?.sessionId || "");
+    } catch (err) {
+      ev.complete("fail");
+      document.getElementById("stripe-error").textContent =
+        err.message || "Payment failed. Please try again.";
+    }
   });
 }
 
