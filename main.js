@@ -725,3 +725,17 @@ signupForm?.addEventListener("submit", async (event) => {
 
   openAuthModal("reset");
 })();
+
+// Handle membership checkout return (success / cancel)
+(function handleMembershipReturn() {
+  const params = new URLSearchParams(window.location.search);
+  const membershipStatus = params.get("membership");
+  if (!membershipStatus) return;
+  history.replaceState({}, "", window.location.pathname);
+  if (membershipStatus === "success") {
+    showToast("Membership purchased successfully! Welcome aboard.");
+    fetchCurrentUser();
+  } else if (membershipStatus === "cancel") {
+    showToast("Membership purchase cancelled.");
+  }
+})();

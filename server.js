@@ -3156,19 +3156,16 @@ app.post(
         return res.status(400).json({ error: "Invalid membership type." });
       }
 
-      const userMembershipType = normalizeMembershipType(
-        req.user?.membershipType,
-      );
-      if (requestedMembershipType !== userMembershipType) {
-        return res.status(400).json({
-          error: "Requested membership tier does not match your account.",
-        });
-      }
-
       const membershipPrice = MEMBERSHIP_PRICES[requestedMembershipType];
       if (!membershipPrice) {
         return res.status(400).json({ error: "Unsupported membership tier." });
       }
+
+      // Update user's membership type in DB so it's set before checkout completes
+      await dbRun("UPDATE users SET membership_type = ? WHERE id = ?", [
+        requestedMembershipType,
+        req.user.id,
+      ]);
 
       const session = await stripe.checkout.sessions.create({
         mode: "payment",
