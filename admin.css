@@ -8,52 +8,97 @@
   width: 100vw;
   height: 100vh;
   overflow: auto;
-  background: rgba(0, 0, 0, 0.25);
+  background: rgba(0, 0, 0, 0.5);
   justify-content: center;
   align-items: center;
 }
 .modal-content {
-  background: #fff;
+  background: var(--bg-soft);
+  border: 1px solid var(--line);
   margin: 5% auto;
   padding: 2rem 2.5rem;
-  border-radius: 12px;
-  max-width: 480px;
-  box-shadow: 0 2px 16px 0 rgba(60, 72, 88, 0.18);
+  border-radius: 16px;
+  max-width: 520px;
+  width: 92vw;
+  box-shadow: 0 8px 40px 0 rgba(0, 0, 0, 0.4);
   position: relative;
+  color: var(--text);
 }
 .modal-content h3 {
   margin-top: 0;
-  font-size: 1.3rem;
+  font-family: "Barlow Condensed", sans-serif;
+  font-size: 1.4rem;
   font-weight: 700;
+  color: var(--text);
 }
 .modal-content .close {
   position: absolute;
   right: 1.2rem;
   top: 1.2rem;
   font-size: 1.5rem;
-  color: #888;
+  color: var(--text-dim);
   cursor: pointer;
   font-weight: bold;
+  line-height: 1;
+}
+.modal-content .close:hover {
+  color: var(--text);
 }
 #modalBookingList {
-  margin-top: 1.2em;
+  margin-top: 1em;
 }
 #modalBookingList .booking-entry {
-  border-bottom: 1px solid #e2e8f0;
-  padding: 0.7em 0;
-  font-size: 1.05rem;
+  border-bottom: 1px solid var(--line);
+  padding: 1em 0;
 }
 #modalBookingList .booking-entry:last-child {
   border-bottom: none;
+  padding-bottom: 0;
 }
-#modalBookingList .booking-customer {
-  font-weight: 600;
-  color: #2563eb;
+.modal-entry-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.8em;
+  gap: 10px;
 }
-#modalBookingList .booking-status {
-  font-size: 0.95em;
-  margin-left: 0.5em;
-  color: #888;
+.booking-customer {
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: var(--accent);
+}
+.modal-status-badge {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  padding: 3px 10px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.modal-detail-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.modal-detail-row {
+  display: flex;
+  gap: 8px;
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
+.modal-detail-label {
+  min-width: 70px;
+  color: var(--text-dim);
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding-top: 2px;
+}
+.modal-detail-value {
+  color: var(--text);
+  font-weight: 500;
+  word-break: break-word;
 }
 /* ── Booking Resource Grid ───────────────────────────────────────────────── */
 

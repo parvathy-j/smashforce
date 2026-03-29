@@ -211,20 +211,44 @@ function showBookingDetailsModal(dateStr, bookings) {
 
   const items = bookings || (lastLoadedBookings || []).filter((b) => b.bookingDate === dateStr);
   if (!items.length) {
-    list.innerHTML = '<div style="color:#888;">No bookings for this date.</div>';
+    list.innerHTML = '<div style="color:#888;padding:1em 0;">No bookings for this date.</div>';
   } else {
-    list.innerHTML = items
-      .map(
-        (b) => `<div class="booking-entry">
+    list.innerHTML = items.map((b) => {
+      const status = String(b.paymentStatus || "pending").toLowerCase();
+      const ref = bookingRef(b);
+      const statusColors = {
+        paid: "#86efac",
+        pending: "#fcd34d",
+        pending_in_person: "#7dd3fc",
+        expired: "#d1d5db",
+        failed: "#fca5a5",
+      };
+      const statusColor = statusColors[status] || "#d1d5db";
+      const rows = [
+        ["Ref",      ref],
+        ["Customer", b.customerName || "-"],
+        ["Email",    b.customerEmail || "-"],
+        ["Phone",    b.customerPhone || b.phone || "-"],
+        ["Facility", b.facility ? `${b.facility}${b.court ? ` — ${b.court}` : ""}` : "-"],
+        ["Date",     b.bookingDate || "-"],
+        ["Time",     b.bookingTime || "-"],
+        ["Duration", b.duration || "-"],
+        ["Amount",   formatMoney(b.amount, b.currency)],
+      ].map(([label, value]) => `
+        <div class="modal-detail-row">
+          <span class="modal-detail-label">${label}</span>
+          <span class="modal-detail-value">${value}</span>
+        </div>`).join("");
+
+      return `<div class="booking-entry">
+        <div class="modal-entry-header">
           <span class="booking-customer">${b.customerName || b.customerEmail || "-"}</span>
-          <span class="booking-status">(${b.paymentStatus || "pending"})</span><br>
-          <span>${b.facility || "-"}${b.court ? ` (${b.court})` : ""}</span><br>
-          <span>${b.bookingTime || "-"}</span>
-          ${b.phone ? `<br><span>Phone: ${b.phone}</span>` : ""}
-          ${b.customerEmail ? `<br><span>Email: ${b.customerEmail}</span>` : ""}
-        </div>`,
-      )
-      .join("");
+          <span class="modal-status-badge" style="background:${statusColor}20;color:${statusColor};border:1px solid ${statusColor}40;">${status.replace(/_/g, " ")}</span>
+        </div>
+        <div class="modal-detail-grid">${rows}</div>
+        ${status === "pending_in_person" ? `<button class="btn primary" style="margin-top:10px;width:100%;" onclick="markBookingPaid('${b.id}')">Mark Paid</button>` : ""}
+      </div>`;
+    }).join("");
   }
   modal.style.display = "flex";
 }
