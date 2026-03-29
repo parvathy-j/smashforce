@@ -1,0 +1,331 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Membership – Smashforce Badminton Centre</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,300;0,600;0,700;0,800;0,900;1,800;1,900&family=Outfit:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="index.css" />
+    <script src="https://js.stripe.com/v3/"></script>
+    <style>
+      .mem-page {
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 60px 20px 80px;
+        background: var(--bg);
+      }
+
+      .mem-back {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        color: var(--white-dim);
+        font-size: 0.85rem;
+        text-decoration: none;
+        margin-bottom: 36px;
+        transition: color 0.2s;
+      }
+      .mem-back:hover { color: var(--lime); }
+
+      .mem-detail-card {
+        background: var(--bg-soft);
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        max-width: 560px;
+        width: 100%;
+        padding: 40px 36px 36px;
+      }
+
+      .mem-detail-card.top {
+        border-color: var(--lime);
+        box-shadow: 0 0 0 1px var(--lime);
+      }
+
+      .mem-detail-pop {
+        display: inline-block;
+        background: var(--lime);
+        color: #000;
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        padding: 4px 10px;
+        border-radius: 20px;
+        margin-bottom: 14px;
+      }
+
+      .mem-detail-eyebrow {
+        font-size: 0.72rem;
+        font-weight: 600;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--lime);
+        margin-bottom: 8px;
+      }
+
+      .mem-detail-card h1 {
+        font-family: 'Barlow Condensed', sans-serif;
+        font-size: 2.2rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.02em;
+        color: var(--white);
+        margin: 0 0 6px;
+      }
+
+      .mem-detail-sub {
+        color: var(--white-dim);
+        font-size: 0.85rem;
+        font-weight: 300;
+        margin-bottom: 24px;
+      }
+
+      .mem-detail-price {
+        display: flex;
+        align-items: baseline;
+        gap: 6px;
+        margin-bottom: 28px;
+      }
+
+      .mem-detail-price .big {
+        font-family: 'Barlow Condensed', sans-serif;
+        font-size: 3.2rem;
+        font-weight: 900;
+        color: var(--white);
+        line-height: 1;
+      }
+
+      .mem-detail-price .mo {
+        color: var(--white-dim);
+        font-size: 0.9rem;
+      }
+
+      .mem-detail-divider {
+        border: none;
+        border-top: 1px solid var(--line);
+        margin: 0 0 24px;
+      }
+
+      .mem-detail-feats {
+        list-style: none;
+        padding: 0;
+        margin: 0 0 32px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      .mem-detail-feats li {
+        display: flex;
+        gap: 10px;
+        align-items: flex-start;
+        font-size: 0.9rem;
+        color: var(--white-dim);
+      }
+
+      .mem-detail-feats li .check {
+        color: var(--lime);
+        font-size: 1rem;
+        flex-shrink: 0;
+        margin-top: 1px;
+      }
+
+      .mem-detail-feats li strong {
+        color: var(--white);
+      }
+
+      .save-tag {
+        display: inline-block;
+        background: rgba(180,255,60,0.12);
+        color: var(--lime);
+        font-size: 0.72rem;
+        font-weight: 600;
+        padding: 2px 7px;
+        border-radius: 10px;
+        margin-left: 6px;
+      }
+
+      .mem-detail-note {
+        background: rgba(255,255,255,0.04);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 14px 16px;
+        font-size: 0.82rem;
+        color: var(--white-dim);
+        margin-bottom: 28px;
+        line-height: 1.5;
+      }
+
+      .mem-detail-note strong { color: var(--white); }
+
+      .btn-checkout {
+        display: block;
+        width: 100%;
+        background: var(--lime);
+        color: #000;
+        font-weight: 700;
+        font-size: 1rem;
+        border: none;
+        border-radius: 10px;
+        padding: 15px 24px;
+        cursor: pointer;
+        transition: opacity 0.2s;
+        text-align: center;
+        font-family: inherit;
+      }
+      .btn-checkout:hover { opacity: 0.88; }
+      .btn-checkout:disabled { opacity: 0.5; cursor: not-allowed; }
+
+      .mem-error {
+        color: #ff6b6b;
+        font-size: 0.85rem;
+        margin-top: 12px;
+        text-align: center;
+        display: none;
+      }
+
+      @media (max-width: 600px) {
+        .mem-detail-card { padding: 28px 20px 24px; }
+        .mem-detail-card h1 { font-size: 1.7rem; }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="mem-page">
+      <a href="smash-force-academy.html#membership" class="mem-back">
+        ← Back to memberships
+      </a>
+
+      <!-- Card populated by JS -->
+      <div class="mem-detail-card" id="memCard">
+        <div id="memCardInner"></div>
+      </div>
+
+      <p class="mem-error" id="memError"></p>
+    </main>
+
+    <script>
+      const PLANS = {
+        court: {
+          eyebrow: "Court Access",
+          title: "Court Membership",
+          sub: "Discounted rates on all badminton courts",
+          price: "$49",
+          priceNote: "per month · no lock-in",
+          features: [
+            { text: "Standard Courts: <strong>$22/hr</strong>", save: "Save $3/hr" },
+            { text: "Single Courts: <strong>$12/hr</strong>", save: "Save $3/hr" },
+            { text: "Priority booking access", save: null },
+            { text: "Cancel anytime", save: null },
+          ],
+          note: "<strong>No lock-in contract.</strong> Cancel any time from your account. Membership is billed monthly and activates immediately after payment.",
+          isPopular: false,
+        },
+        "all-access": {
+          eyebrow: "Full Access",
+          title: "All Access Membership",
+          sub: "Courts + game tables — maximum savings",
+          price: "$79",
+          priceNote: "per month · no lock-in",
+          features: [
+            { text: "Standard Courts: <strong>$22/hr</strong>", save: "Save $3/hr" },
+            { text: "Single Courts: <strong>$12/hr</strong>", save: "Save $3/hr" },
+            { text: "Multi-Game Tables: <strong>$8/hr</strong>", save: "Save $7/hr" },
+            { text: "Priority booking + guest discounts", save: null },
+            { text: "Cancel anytime", save: null },
+          ],
+          note: "<strong>No lock-in contract.</strong> Cancel any time from your account. Membership is billed monthly and activates immediately after payment.",
+          isPopular: true,
+        },
+      };
+
+      const params = new URLSearchParams(window.location.search);
+      const type = params.get("type");
+      const plan = PLANS[type];
+
+      if (!plan) {
+        window.location.href = "smash-force-academy.html#membership";
+      } else {
+        document.title = plan.title + " – Smashforce Badminton Centre";
+        const card = document.getElementById("memCard");
+        if (plan.isPopular) card.classList.add("top");
+
+        const featureRows = plan.features.map(f =>
+          `<li>
+            <span class="check">✓</span>
+            <span>${f.text}${f.save ? `<span class="save-tag">${f.save}</span>` : ""}</span>
+          </li>`
+        ).join("");
+
+        document.getElementById("memCardInner").innerHTML = `
+          ${plan.isPopular ? '<div class="mem-detail-pop">⭐ Most Popular</div>' : ""}
+          <div class="mem-detail-eyebrow">${plan.eyebrow}</div>
+          <h1>${plan.title}</h1>
+          <p class="mem-detail-sub">${plan.sub}</p>
+          <div class="mem-detail-price">
+            <span class="big">${plan.price}</span>
+            <span class="mo">/ month</span>
+          </div>
+          <hr class="mem-detail-divider" />
+          <ul class="mem-detail-feats">${featureRows}</ul>
+          <div class="mem-detail-note">${plan.note}</div>
+          <button class="btn-checkout" id="checkoutBtn">Purchase Membership →</button>
+          <p class="mem-error" id="checkoutError"></p>
+        `;
+
+        document.getElementById("checkoutBtn").addEventListener("click", startCheckout);
+      }
+
+      // Auth guard — must be logged in to view this page
+      async function checkAuth() {
+        try {
+          const res = await fetch("/current-user", { credentials: "include" });
+          if (!res.ok) throw new Error("not logged in");
+          const data = await res.json();
+          if (!data.user) throw new Error("not logged in");
+        } catch {
+          // Store intent then send back to main page which will open login modal
+          sessionStorage.setItem("pending_membership_type", type);
+          window.location.href = `smash-force-academy.html#membership`;
+        }
+      }
+      checkAuth();
+
+      async function startCheckout() {
+        const btn = document.getElementById("checkoutBtn");
+        const errEl = document.getElementById("checkoutError");
+        btn.disabled = true;
+        btn.textContent = "Redirecting…";
+        errEl.style.display = "none";
+
+        try {
+          const res = await fetch("/create-membership-checkout-session", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify({ membershipType: type }),
+          });
+
+          const data = await res.json().catch(() => ({}));
+
+          if (!res.ok || !data.url) {
+            throw new Error(data.error || "Could not start checkout. Please try again.");
+          }
+
+          window.location.href = data.url;
+        } catch (err) {
+          errEl.textContent = err.message;
+          errEl.style.display = "block";
+          btn.disabled = false;
+          btn.textContent = "Purchase Membership →";
+        }
+      }
+    </script>
+  </body>
+</html>
