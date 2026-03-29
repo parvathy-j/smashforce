@@ -3193,12 +3193,6 @@ app.post(
         return res.status(400).json({ error: "Unsupported membership tier." });
       }
 
-      // Update user's membership type in DB so it's set before checkout completes
-      await dbRun("UPDATE users SET membership_type = ? WHERE id = ?", [
-        requestedMembershipType,
-        req.user.id,
-      ]);
-
       const session = await stripe.checkout.sessions.create({
         mode: "payment",
         payment_method_types: ["card"],
@@ -3254,7 +3248,16 @@ app.get("/checkout-session-status", async (req, res) => {
     // If Stripe confirms payment succeeded, update DB immediately.
     // This is a reliable fallback for when the webhook fires late or isn't configured.
     if (session.payment_status === "paid") {
-      await updateBookingByCheckoutSession(session.id, "paid");
+      const md = session.metadata || {};
+      if (md.checkoutType === "membership" && md.memberUserId && md.membershipType) {
+        // Membership checkout — activate the membership
+        await dbRun(
+          "UPDATE users SET membership_type = ? WHERE id = ?",
+          [md.membershipType, md.memberUserId],
+        );
+      } else {
+        await updateBookingByCheckoutSession(session.id, "paid");
+      }
     } else if (session.status === "expired") {
       await updateBookingByCheckoutSession(session.id, "expired");
     }
@@ -3395,11 +3398,22 @@ app.post(
     try {
       if (event.type === "checkout.session.completed") {
         const session = event.data.object;
-        await updateBookingByCheckoutSession(session.id, "paid");
+        const md = session.metadata || {};
+
+        // Activate membership if this was a membership checkout
+        if (md.checkoutType === "membership" && md.memberUserId && md.membershipType) {
+          await dbRun(
+            "UPDATE users SET membership_type = ? WHERE id = ?",
+            [md.membershipType, md.memberUserId],
+          );
+        } else {
+          await updateBookingByCheckoutSession(session.id, "paid");
+        }
+
         console.log("Checkout completed:", {
           sessionId: session.id,
           customer: session.customer_details?.email,
-          metadata: session.metadata,
+          metadata: md,
         });
 
         // Send confirmation email to customer
