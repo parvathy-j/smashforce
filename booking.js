@@ -1092,6 +1092,10 @@ function step3Next() {
     showFormError("Please enter a valid email address.");
     return;
   }
+  if (!/^(\+?61|0)[2-578]\d{8}$/.test(phone.replace(/\s/g, ""))) {
+    showFormError("Please enter a valid Australian phone number (e.g. 0412 345 678).");
+    return;
+  }
   goStep(4);
 }
 
