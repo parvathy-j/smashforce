@@ -1241,7 +1241,6 @@ async function reconcileStripeCheckoutSessions({
     created: { gte: sinceEpoch },
   });
 
-  let inserted = 0;
   let updated = 0;
   let skipped = 0;
 
@@ -1262,42 +1261,14 @@ async function reconcileStripeCheckoutSessions({
       } else {
         skipped += 1;
       }
-      continue;
+    } else {
+      // Row not in DB — skip. It may have been intentionally deleted.
+      skipped += 1;
     }
-
-    const md = session.metadata || {};
-    const customerName =
-      md.name || session.customer_details?.name || "Stripe Customer";
-    const customerEmail =
-      md.email ||
-      session.customer_details?.email ||
-      session.customer_email ||
-      "";
-
-    await insertBooking({
-      userId: md.memberUserId || null,
-      name: customerName,
-      email: customerEmail,
-      phone: md.phone || "",
-      facility: md.facility || "unknown",
-      date: md.date || "",
-      time: md.time || "",
-      duration: md.duration || "",
-      court: md.court || "",
-      membershipType: md.membershipType || "",
-      appliedMembership: md.appliedMembership || "none",
-      amount: Number(session.amount_total || 0),
-      currency: String(session.currency || "aud").toLowerCase(),
-      paymentStatus: mappedStatus,
-      checkoutSessionId,
-      source: "reconcile",
-    });
-    inserted += 1;
   }
 
   return {
     scanned: (sessionsResult.data || []).length,
-    inserted,
     updated,
     skipped,
     hours: safeHours,
