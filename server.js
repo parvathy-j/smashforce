@@ -448,14 +448,6 @@ app.get("/api/booked-slots", async (req, res) => {
       ? `Table ${courtNum}`
       : `Court ${courtNum}`;
 
-    // Debug: fetch all bookings for this date to see what's actually stored
-    const allForDate = await dbAll(
-      `SELECT facility, court, booking_date, booking_time, payment_status FROM bookings WHERE booking_date = ?`,
-      [date],
-    );
-    console.log("[booked-slots] query:", { facility, courtLabel, date });
-    console.log("[booked-slots] all bookings for date:", JSON.stringify(allForDate));
-
     // Query only active bookings for this exact court on this date
     const rows = await dbAll(
       `SELECT booking_time FROM bookings
@@ -465,8 +457,6 @@ app.get("/api/booked-slots", async (req, res) => {
          AND payment_status IN ('paid', 'pending', 'pending_in_person')`,
       [facility, courtLabel, date],
     );
-
-    console.log("[booked-slots] matched rows:", JSON.stringify(rows));
 
     // Expand each booking's time range into the 30-min slots it covers
     const blocked = new Set();
@@ -493,7 +483,6 @@ app.get("/api/booked-slots", async (req, res) => {
       }
     }
 
-    console.log("[booked-slots] blocked slots:", Array.from(blocked));
     return res.json({ booked: Array.from(blocked) });
   } catch (err) {
     console.error("Booked slots API error:", err.message);
