@@ -285,8 +285,9 @@ async function selectDate(date, el) {
   state.endTime = "";
   state.selectedSlots = [];
   state.durationHrs = 0;
-  // Fetch booked slots and render
-  state.bookedSlots = await getBooked(fmtDate(date));
+  state.bookedSlots = [];
+  // Fetch booked slots then render
+  await refreshBookedSlots();
   renderTimeSlots();
   updateSummary();
 }
@@ -379,6 +380,47 @@ function renderTimeSlots() {
   html += `<div class="${hintClass}">${hintText}</div>`;
   html += "</div>";
   document.getElementById("timeContent").innerHTML = html;
+}
+
+let _slotRefreshTimer = null;
+
+async function refreshBookedSlots() {
+  if (!state.facilityType || !state.courtNum || !state.date) return;
+  const dateStr = fmtDate(state.date);
+  try {
+    const res = await fetch(
+      `/api/booked-slots?facility=${encodeURIComponent(state.facilityType)}&court=${encodeURIComponent(state.courtNum)}&date=${encodeURIComponent(dateStr)}`,
+    );
+    if (!res.ok) return;
+    const data = await res.json();
+    const fresh = Array.isArray(data.booked) ? data.booked : [];
+    // Only re-render if the list actually changed
+    if (JSON.stringify(fresh.sort()) !== JSON.stringify((state.bookedSlots || []).slice().sort())) {
+      state.bookedSlots = fresh;
+      // Drop any selected slots that are now blocked
+      state.selectedSlots = state.selectedSlots.filter((s) => !fresh.includes(s));
+      if (state.selectedSlots.length > 0) {
+        state.startTime = state.selectedSlots[0];
+        state.endTime = calcEndTime(state.selectedSlots[state.selectedSlots.length - 1], 0.5);
+        state.durationHrs = state.selectedSlots.length * 0.5;
+      } else {
+        state.startTime = "";
+        state.endTime = "";
+        state.durationHrs = 0;
+      }
+      renderTimeSlots();
+      updateSummary();
+    }
+  } catch { /* silent — don't disrupt the user */ }
+}
+
+function startSlotRefresh() {
+  stopSlotRefresh();
+  _slotRefreshTimer = setInterval(refreshBookedSlots, 30000); // every 30s
+}
+
+function stopSlotRefresh() {
+  if (_slotRefreshTimer) { clearInterval(_slotRefreshTimer); _slotRefreshTimer = null; }
 }
 
 function slotToMins(t) {
@@ -602,6 +644,7 @@ function selectCourt(num, el, type, event) {
   state.courtNum = num;
   state.courtLabel = `Court ${num}`;
   updateSummary();
+  if (state.date) refreshBookedSlots();
 }
 
 function selectTable(num, el, event) {
@@ -615,6 +658,7 @@ function selectTable(num, el, event) {
   state.courtNum = num;
   state.courtLabel = `Table ${num}`;
   updateSummary();
+  if (state.date) refreshBookedSlots();
 }
 
 //
@@ -935,6 +979,13 @@ function goStep(n) {
   document.getElementById("step" + n).classList.add("active");
   state.step = n;
   updateProgressBar(n);
+  if (n === 2) {
+    // Always re-fetch booked slots when entering step 2 (handles back navigation)
+    refreshBookedSlots();
+    startSlotRefresh();
+  } else {
+    stopSlotRefresh();
+  }
   if (n === 4) {
     populateConfirm();
     mountStripe();
