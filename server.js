@@ -3167,6 +3167,15 @@ app.get("/checkout-session-status", async (req, res) => {
     }
 
     const session = await stripe.checkout.sessions.retrieve(sessionId);
+
+    // If Stripe confirms payment succeeded, update DB immediately.
+    // This is a reliable fallback for when the webhook fires late or isn't configured.
+    if (session.payment_status === "paid") {
+      await updateBookingByCheckoutSession(session.id, "paid");
+    } else if (session.status === "expired") {
+      await updateBookingByCheckoutSession(session.id, "expired");
+    }
+
     return res.json({
       id: session.id,
       status: session.status,
