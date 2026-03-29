@@ -95,6 +95,8 @@ function renderAuthState() {
   const statusChip = document.getElementById("authStatusChip");
   const adminNavItem = document.getElementById("adminNavItem");
   const adminMobileLink = document.getElementById("mobAdminLink");
+  const accountNavItem = document.getElementById("accountNavItem");
+  const accountMobileLink = document.getElementById("mobAccountLink");
   const logoutBtn = document.getElementById("authLogoutBtn");
   const mobileLogoutBtn = document.getElementById("mobAuthLogoutBtn");
   const openBtn = document.getElementById("authOpenBtn");
@@ -106,7 +108,7 @@ function renderAuthState() {
       : "Guest";
   }
 
-  [adminNavItem, adminMobileLink, logoutBtn, mobileLogoutBtn].forEach((el) => {
+  [adminNavItem, adminMobileLink, accountNavItem, accountMobileLink, logoutBtn, mobileLogoutBtn].forEach((el) => {
     if (el) {
       el.classList.toggle("hidden-auth-link", !authState.user);
     }

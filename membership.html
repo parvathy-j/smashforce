@@ -285,7 +285,7 @@
       // Auth guard — must be logged in to view this page
       async function checkAuth() {
         try {
-          const res = await fetch("/current-user", { credentials: "include" });
+          const res = await fetch("/me", { credentials: "include" });
           if (!res.ok) throw new Error("not logged in");
           const data = await res.json();
           if (!data.user) throw new Error("not logged in");

@@ -1,0 +1,602 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>My Account – Smashforce Badminton Centre</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,300;0,600;0,700;0,800;0,900;1,800;1,900&family=Outfit:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="index.css" />
+    <style>
+      body { background: var(--bg); color: var(--white); }
+
+      .acc-page {
+        max-width: 760px;
+        margin: 0 auto;
+        padding: 48px 20px 80px;
+      }
+
+      .acc-back {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        color: var(--white-dim);
+        font-size: 0.85rem;
+        text-decoration: none;
+        margin-bottom: 32px;
+        transition: color 0.2s;
+      }
+      .acc-back:hover { color: var(--lime); }
+
+      .acc-header {
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 16px;
+        flex-wrap: wrap;
+        margin-bottom: 36px;
+      }
+
+      .acc-header h1 {
+        font-family: 'Barlow Condensed', sans-serif;
+        font-size: 2.4rem;
+        font-weight: 900;
+        text-transform: uppercase;
+        margin: 0;
+      }
+
+      .acc-email {
+        color: var(--white-dim);
+        font-size: 0.85rem;
+        margin-top: 4px;
+      }
+
+      /* ── Section card ── */
+      .acc-section {
+        background: var(--bg-soft);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 28px 24px;
+        margin-bottom: 24px;
+      }
+
+      .acc-section-title {
+        font-family: 'Barlow Condensed', sans-serif;
+        font-size: 1.1rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--white-dim);
+        margin: 0 0 20px;
+      }
+
+      /* ── Membership card ── */
+      .mem-status-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 14px;
+      }
+
+      .mem-status-info h3 {
+        font-size: 1.1rem;
+        font-weight: 600;
+        margin: 0 0 4px;
+      }
+
+      .mem-status-info p {
+        color: var(--white-dim);
+        font-size: 0.82rem;
+        margin: 0;
+      }
+
+      .mem-badge {
+        display: inline-block;
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.07em;
+        text-transform: uppercase;
+        padding: 4px 10px;
+        border-radius: 20px;
+      }
+      .mem-badge.active { background: rgba(180,255,60,0.15); color: var(--lime); border: 1px solid var(--lime); }
+      .mem-badge.none { background: rgba(255,255,255,0.07); color: var(--white-dim); border: 1px solid var(--line); }
+
+      .btn-cancel-mem {
+        background: transparent;
+        border: 1px solid #ff6b6b;
+        color: #ff6b6b;
+        font-size: 0.82rem;
+        font-weight: 600;
+        padding: 8px 16px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-family: inherit;
+        transition: background 0.18s, color 0.18s;
+        white-space: nowrap;
+      }
+      .btn-cancel-mem:hover { background: rgba(255,107,107,0.12); }
+
+      .btn-get-mem {
+        background: var(--lime);
+        color: #000;
+        font-size: 0.85rem;
+        font-weight: 700;
+        padding: 9px 18px;
+        border-radius: 8px;
+        text-decoration: none;
+        white-space: nowrap;
+        transition: opacity 0.18s;
+      }
+      .btn-get-mem:hover { opacity: 0.85; }
+
+      /* ── Bookings list ── */
+      .bookings-list {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      .booking-item {
+        background: rgba(255,255,255,0.03);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 16px 18px;
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 10px;
+        align-items: center;
+      }
+
+      .booking-item-info {}
+      .booking-ref {
+        font-size: 0.72rem;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--lime);
+        margin-bottom: 5px;
+      }
+      .booking-title {
+        font-size: 0.95rem;
+        font-weight: 600;
+        color: var(--white);
+        margin-bottom: 3px;
+      }
+      .booking-meta {
+        font-size: 0.8rem;
+        color: var(--white-dim);
+      }
+
+      .booking-status {
+        display: inline-block;
+        font-size: 0.68rem;
+        font-weight: 700;
+        letter-spacing: 0.07em;
+        text-transform: uppercase;
+        padding: 3px 8px;
+        border-radius: 12px;
+        margin-left: 8px;
+        vertical-align: middle;
+      }
+      .bs-paid { background: rgba(180,255,60,0.12); color: var(--lime); }
+      .bs-pending { background: rgba(255,200,60,0.12); color: #ffc83c; }
+      .bs-cancelled { background: rgba(255,107,107,0.12); color: #ff6b6b; }
+      .bs-expired { background: rgba(255,255,255,0.08); color: var(--white-dim); }
+
+      .booking-actions { display: flex; gap: 8px; align-items: center; }
+
+      .btn-cancel-booking {
+        background: transparent;
+        border: 1px solid var(--line);
+        color: #ff6b6b;
+        font-size: 0.78rem;
+        font-weight: 600;
+        padding: 6px 12px;
+        border-radius: 7px;
+        cursor: pointer;
+        font-family: inherit;
+        transition: border-color 0.18s, background 0.18s;
+        white-space: nowrap;
+      }
+      .btn-cancel-booking:hover { border-color: #ff6b6b; background: rgba(255,107,107,0.08); }
+      .btn-cancel-booking:disabled { opacity: 0.4; cursor: not-allowed; }
+
+      .acc-empty {
+        color: var(--white-dim);
+        font-size: 0.88rem;
+        text-align: center;
+        padding: 28px 0;
+      }
+
+      .acc-tabs {
+        display: flex;
+        gap: 4px;
+        margin-bottom: 20px;
+        border-bottom: 1px solid var(--line);
+        padding-bottom: 0;
+      }
+      .acc-tab {
+        background: none;
+        border: none;
+        border-bottom: 2px solid transparent;
+        color: var(--white-dim);
+        font-size: 0.88rem;
+        font-weight: 600;
+        padding: 8px 14px 10px;
+        cursor: pointer;
+        font-family: inherit;
+        transition: color 0.18s;
+        margin-bottom: -1px;
+      }
+      .acc-tab.active { color: var(--white); border-bottom-color: var(--lime); }
+      .acc-tab:hover { color: var(--white); }
+
+      .acc-loading { color: var(--white-dim); font-size: 0.88rem; padding: 20px 0; }
+
+      .acc-toast {
+        position: fixed;
+        bottom: 28px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: var(--bg-soft);
+        border: 1px solid var(--line);
+        color: var(--white);
+        padding: 12px 22px;
+        border-radius: 10px;
+        font-size: 0.88rem;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.3s;
+        z-index: 999;
+        white-space: nowrap;
+      }
+      .acc-toast.show { opacity: 1; }
+
+      /* Confirm overlay */
+      .confirm-overlay {
+        position: fixed; inset: 0;
+        background: rgba(0,0,0,0.6);
+        display: flex; align-items: center; justify-content: center;
+        z-index: 500;
+        opacity: 0; pointer-events: none; transition: opacity 0.2s;
+      }
+      .confirm-overlay.show { opacity: 1; pointer-events: all; }
+      .confirm-box {
+        background: var(--bg-soft);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 32px 28px;
+        max-width: 380px;
+        width: 90%;
+        text-align: center;
+      }
+      .confirm-box h3 { font-size: 1.1rem; font-weight: 700; margin: 0 0 10px; }
+      .confirm-box p { color: var(--white-dim); font-size: 0.85rem; margin: 0 0 24px; line-height: 1.5; }
+      .confirm-btns { display: flex; gap: 10px; justify-content: center; }
+      .btn-confirm-yes {
+        background: #ff6b6b; color: #fff; font-weight: 700;
+        border: none; padding: 10px 22px; border-radius: 8px;
+        cursor: pointer; font-family: inherit; font-size: 0.88rem;
+        transition: opacity 0.18s;
+      }
+      .btn-confirm-yes:hover { opacity: 0.85; }
+      .btn-confirm-no {
+        background: transparent; color: var(--white-dim);
+        border: 1px solid var(--line); padding: 10px 22px;
+        border-radius: 8px; cursor: pointer; font-family: inherit;
+        font-size: 0.88rem;
+      }
+
+      @media (max-width: 520px) {
+        .booking-item { grid-template-columns: 1fr; }
+        .acc-header { flex-direction: column; align-items: flex-start; }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="acc-page">
+      <a href="smash-force-academy.html" class="acc-back">← Back to home</a>
+
+      <div class="acc-header">
+        <div>
+          <h1 id="accName">My Account</h1>
+          <p class="acc-email" id="accEmail"></p>
+        </div>
+      </div>
+
+      <!-- Membership section -->
+      <div class="acc-section" id="memSection">
+        <p class="acc-section-title">Membership</p>
+        <div class="acc-loading" id="memLoading">Loading…</div>
+        <div id="memContent" style="display:none">
+          <div class="mem-status-row">
+            <div class="mem-status-info">
+              <h3 id="memName">No Membership</h3>
+              <p id="memDesc"></p>
+            </div>
+            <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+              <span class="mem-badge none" id="memBadge">Inactive</span>
+              <a href="smash-force-academy.html#membership" class="btn-get-mem" id="memGetBtn">Get Membership</a>
+              <button class="btn-cancel-mem" id="memCancelBtn" style="display:none">Cancel Membership</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bookings section -->
+      <div class="acc-section">
+        <p class="acc-section-title">Bookings</p>
+        <div class="acc-tabs">
+          <button class="acc-tab active" data-tab="upcoming">Upcoming</button>
+          <button class="acc-tab" data-tab="past">Past</button>
+        </div>
+        <div class="acc-loading" id="bookingsLoading">Loading…</div>
+        <div id="bookingsContent" style="display:none">
+          <div class="bookings-list" id="bookingsList"></div>
+          <p class="acc-empty" id="bookingsEmpty" style="display:none">No bookings found.</p>
+        </div>
+      </div>
+    </main>
+
+    <!-- Confirm dialog -->
+    <div class="confirm-overlay" id="confirmOverlay">
+      <div class="confirm-box">
+        <h3 id="confirmTitle">Are you sure?</h3>
+        <p id="confirmMsg"></p>
+        <div class="confirm-btns">
+          <button class="btn-confirm-yes" id="confirmYes">Yes, cancel</button>
+          <button class="btn-confirm-no" id="confirmNo">Keep it</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="acc-toast" id="accToast"></div>
+
+    <script>
+      const MEMBERSHIP_LABELS = {
+        court: { name: "Court Membership", desc: "Discounted rates on all badminton courts · $49/month" },
+        "all-access": { name: "All Access Membership", desc: "Courts + game tables, maximum savings · $79/month" },
+      };
+
+      let allBookings = [];
+      let activeTab = "upcoming";
+      let pendingAction = null; // { type: 'booking'|'membership', id?: string }
+
+      // ── Toast ──
+      function showToast(msg) {
+        const t = document.getElementById("accToast");
+        t.textContent = msg;
+        t.classList.add("show");
+        setTimeout(() => t.classList.remove("show"), 3500);
+      }
+
+      // ── Confirm dialog ──
+      function openConfirm(title, msg, onConfirm) {
+        document.getElementById("confirmTitle").textContent = title;
+        document.getElementById("confirmMsg").textContent = msg;
+        pendingAction = onConfirm;
+        document.getElementById("confirmOverlay").classList.add("show");
+      }
+      function closeConfirm() {
+        document.getElementById("confirmOverlay").classList.remove("show");
+        pendingAction = null;
+      }
+      document.getElementById("confirmYes").addEventListener("click", () => {
+        const fn = pendingAction;
+        closeConfirm();
+        if (fn) fn();
+      });
+      document.getElementById("confirmNo").addEventListener("click", closeConfirm);
+      document.getElementById("confirmOverlay").addEventListener("click", (e) => {
+        if (e.target === document.getElementById("confirmOverlay")) closeConfirm();
+      });
+
+      // ── Auth check ──
+      async function init() {
+        let user;
+        try {
+          const res = await fetch("/me", { credentials: "include" });
+          if (!res.ok) throw new Error();
+          const data = await res.json();
+          if (!data.user) throw new Error();
+          user = data.user;
+        } catch {
+          window.location.href = "smash-force-academy.html";
+          return;
+        }
+
+        document.getElementById("accName").textContent = user.name || "My Account";
+        document.getElementById("accEmail").textContent = user.email || "";
+
+        renderMembership(user);
+        await loadBookings();
+      }
+
+      // ── Membership ──
+      function renderMembership(user) {
+        document.getElementById("memLoading").style.display = "none";
+        document.getElementById("memContent").style.display = "block";
+
+        const type = user.membershipType || "";
+        const plan = MEMBERSHIP_LABELS[type];
+
+        const nameEl = document.getElementById("memName");
+        const descEl = document.getElementById("memDesc");
+        const badge = document.getElementById("memBadge");
+        const cancelBtn = document.getElementById("memCancelBtn");
+        const getBtn = document.getElementById("memGetBtn");
+
+        if (plan) {
+          nameEl.textContent = plan.name;
+          descEl.textContent = plan.desc;
+          badge.textContent = "Active";
+          badge.className = "mem-badge active";
+          cancelBtn.style.display = "inline-block";
+          getBtn.style.display = "none";
+        } else {
+          nameEl.textContent = "No Active Membership";
+          descEl.textContent = "Join a membership plan to get discounted court rates.";
+          badge.textContent = "Inactive";
+          badge.className = "mem-badge none";
+          cancelBtn.style.display = "none";
+          getBtn.style.display = "inline-block";
+        }
+
+        cancelBtn.onclick = () => {
+          openConfirm(
+            "Cancel Membership?",
+            "Your membership will be cancelled immediately. You will lose member pricing on future bookings.",
+            cancelMembership,
+          );
+        };
+      }
+
+      async function cancelMembership() {
+        try {
+          const res = await fetch("/cancel-membership", {
+            method: "POST",
+            credentials: "include",
+            headers: { "Content-Type": "application/json" },
+          });
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) throw new Error(data.error || "Could not cancel membership.");
+          showToast("Membership cancelled.");
+          // Re-fetch user and re-render membership
+          const meRes = await fetch("/me", { credentials: "include" });
+          const meData = await meRes.json();
+          if (meData.user) renderMembership(meData.user);
+        } catch (err) {
+          showToast(err.message);
+        }
+      }
+
+      // ── Bookings ──
+      async function loadBookings() {
+        try {
+          const res = await fetch("/my-bookings", { credentials: "include" });
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) throw new Error(data.error || "Could not load bookings.");
+          allBookings = data.bookings || [];
+        } catch (err) {
+          allBookings = [];
+          showToast(err.message);
+        }
+        document.getElementById("bookingsLoading").style.display = "none";
+        document.getElementById("bookingsContent").style.display = "block";
+        renderBookings();
+      }
+
+      function isUpcoming(b) {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        return new Date(b.bookingDate) >= today && b.paymentStatus !== "cancelled" && b.paymentStatus !== "expired";
+      }
+
+      function renderBookings() {
+        const list = document.getElementById("bookingsList");
+        const empty = document.getElementById("bookingsEmpty");
+
+        const filtered = allBookings.filter(b =>
+          activeTab === "upcoming" ? isUpcoming(b) : !isUpcoming(b)
+        );
+
+        if (!filtered.length) {
+          list.innerHTML = "";
+          empty.style.display = "block";
+          empty.textContent = activeTab === "upcoming" ? "No upcoming bookings." : "No past bookings.";
+          return;
+        }
+
+        empty.style.display = "none";
+        list.innerHTML = filtered.map(b => buildBookingItem(b)).join("");
+
+        list.querySelectorAll(".btn-cancel-booking").forEach(btn => {
+          btn.addEventListener("click", () => {
+            const id = btn.dataset.id;
+            const ref = btn.dataset.ref;
+            openConfirm(
+              "Cancel Booking?",
+              `Cancel booking ${ref}? This cannot be undone. Contact us for refund queries.`,
+              () => cancelBooking(id, ref),
+            );
+          });
+        });
+      }
+
+      function buildBookingItem(b) {
+        const statusClass = { paid: "bs-paid", pending: "bs-pending", cancelled: "bs-cancelled", expired: "bs-expired", pending_in_person: "bs-pending" }[b.paymentStatus] || "bs-pending";
+        const statusLabel = { paid: "Paid", pending: "Pending", cancelled: "Cancelled", expired: "Expired", pending_in_person: "In Person" }[b.paymentStatus] || b.paymentStatus;
+
+        const today = new Date(); today.setHours(0,0,0,0);
+        const bookingDate = new Date(b.bookingDate);
+        const canCancel = bookingDate >= today && (b.paymentStatus === "paid" || b.paymentStatus === "pending_in_person" || b.paymentStatus === "pending");
+
+        const courtLabel = b.court ? ` · ${b.court}` : "";
+        const facilityLabel = b.facility ? formatFacility(b.facility) : "";
+
+        return `<div class="booking-item">
+          <div class="booking-item-info">
+            <div class="booking-ref">${escapeHtml(b.ref)} <span class="booking-status ${statusClass}">${statusLabel}</span></div>
+            <div class="booking-title">${facilityLabel}${courtLabel}</div>
+            <div class="booking-meta">${formatDate(b.bookingDate)} · ${escapeHtml(b.bookingTime || "")}${b.duration ? " · " + escapeHtml(b.duration) : ""}</div>
+          </div>
+          <div class="booking-actions">
+            ${canCancel ? `<button class="btn-cancel-booking" data-id="${escapeHtml(b.id)}" data-ref="${escapeHtml(b.ref)}">Cancel</button>` : ""}
+          </div>
+        </div>`;
+      }
+
+      async function cancelBooking(bookingId, ref) {
+        try {
+          const res = await fetch("/cancel-booking", {
+            method: "POST",
+            credentials: "include",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ bookingId }),
+          });
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) throw new Error(data.error || "Could not cancel booking.");
+          showToast(`Booking ${ref} cancelled.`);
+          // Update local state
+          const b = allBookings.find(x => x.id === bookingId);
+          if (b) b.paymentStatus = "cancelled";
+          renderBookings();
+        } catch (err) {
+          showToast(err.message);
+        }
+      }
+
+      // ── Tabs ──
+      document.querySelectorAll(".acc-tab").forEach(tab => {
+        tab.addEventListener("click", () => {
+          document.querySelectorAll(".acc-tab").forEach(t => t.classList.remove("active"));
+          tab.classList.add("active");
+          activeTab = tab.dataset.tab;
+          renderBookings();
+        });
+      });
+
+      // ── Helpers ──
+      function formatDate(dateStr) {
+        if (!dateStr) return "";
+        const d = new Date(dateStr + "T00:00:00");
+        return d.toLocaleDateString("en-AU", { weekday: "short", day: "numeric", month: "short", year: "numeric" });
+      }
+
+      function formatFacility(f) {
+        const map = { standard: "Standard Court", single: "Single Court", table: "Multi-Game Table" };
+        return map[f?.toLowerCase()] || f || "";
+      }
+
+      function escapeHtml(str) {
+        return String(str || "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+      }
+
+      init();
+    </script>
+  </body>
+</html>

@@ -2554,6 +2554,67 @@ app.get("/my-bookings", requireAuth, async (req, res) => {
   }
 });
 
+// Cancel a booking — user can only cancel their own upcoming paid/eftpos bookings
+app.post("/cancel-booking", requireSameOrigin, requireAuth, async (req, res) => {
+  try {
+    const bookingId = String(req.body?.bookingId || "").trim();
+    if (!bookingId) {
+      return res.status(400).json({ error: "Missing bookingId." });
+    }
+
+    const rows = await dbAll(
+      "SELECT * FROM bookings WHERE id = ? AND user_id = ? LIMIT 1",
+      [bookingId, req.user.id],
+    );
+    const booking = rows?.[0];
+    if (!booking) {
+      return res.status(404).json({ error: "Booking not found." });
+    }
+
+    const cancellableStatuses = ["paid", "pending_in_person", "pending"];
+    if (!cancellableStatuses.includes(booking.payment_status)) {
+      return res.status(400).json({ error: "This booking cannot be cancelled." });
+    }
+
+    // Only allow cancellation of future bookings
+    const bookingDate = new Date(booking.booking_date);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    if (bookingDate < today) {
+      return res.status(400).json({ error: "Past bookings cannot be cancelled." });
+    }
+
+    await dbRun(
+      "UPDATE bookings SET payment_status = 'cancelled', updated_at = ? WHERE id = ?",
+      [new Date().toISOString(), bookingId],
+    );
+
+    return res.json({ ok: true, message: "Booking cancelled successfully." });
+  } catch (err) {
+    console.error("Cancel booking error:", err.message);
+    return res.status(500).json({ error: "Could not cancel booking. Please try again." });
+  }
+});
+
+// Cancel membership — clears membership_type for the logged-in user
+app.post("/cancel-membership", requireSameOrigin, requireAuth, async (req, res) => {
+  try {
+    if (!req.user.membershipType) {
+      return res.status(400).json({ error: "You do not have an active membership." });
+    }
+
+    await dbRun(
+      "UPDATE users SET membership_type = '' WHERE id = ?",
+      [req.user.id],
+    );
+
+    return res.json({ ok: true, message: "Membership cancelled successfully." });
+  } catch (err) {
+    console.error("Cancel membership error:", err.message);
+    return res.status(500).json({ error: "Could not cancel membership. Please try again." });
+  }
+});
+
 app.get("/admin/bookings", requireAdmin, async (req, res) => {
   try {
     const filters = {
