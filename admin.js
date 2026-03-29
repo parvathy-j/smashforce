@@ -38,7 +38,7 @@ function bookingRef(booking) {
 // Resource Grid — courts as rows, time slots as columns
 // ---------------------------------------------------------------------------
 
-const GRID_START_MINS = 6 * 60;   // 6:00 AM
+const GRID_START_MINS = 5 * 60;   // 5:00 AM
 const GRID_END_MINS   = 22 * 60;  // 10:00 PM (last slot label; bookings run to 11 PM)
 
 const GRID_RESOURCES = [
