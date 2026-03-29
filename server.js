@@ -3030,6 +3030,60 @@ app.post(
   },
 );
 
+// EFTPOS walk-in: create booking already marked as paid
+app.post(
+  "/create-eftpos-booking",
+  requireSameOrigin,
+  requireAdmin,
+  bookingRateLimit,
+  async (req, res) => {
+    try {
+      if (await hasBookingConflict({ facility: req.body.facility, court: req.body.court, date: req.body.date, time: req.body.time })) {
+        return res.status(409).json({ error: "That slot is already booked. Please choose a different time." });
+      }
+      const payload = normalizeBookingPayload({ ...req.body, isMember: false, membershipType: "" }, null);
+      if (payload.error) return res.status(400).json({ error: payload.error });
+
+      const bookingId = await insertBooking({
+        userId: null,
+        name: payload.name,
+        email: payload.email,
+        phone: payload.phone,
+        facility: payload.facility,
+        date: payload.date,
+        time: payload.time,
+        duration: payload.duration,
+        court: payload.court,
+        membershipType: "",
+        appliedMembership: "none",
+        amount: payload.amount,
+        currency: "aud",
+        paymentStatus: "paid",
+        source: "eftpos",
+      });
+
+      const ref = `SFA-${String(bookingId).slice(-8).toUpperCase()}`;
+      if (payload.email) {
+        sendBookingConfirmationEmail({
+          to: payload.email,
+          name: payload.name,
+          facility: payload.facility,
+          court: payload.court,
+          date: payload.date,
+          time: payload.time,
+          duration: payload.duration,
+          ref,
+        });
+      }
+
+      return res.json({ ok: true, bookingId, ref, message: "EFTPOS booking saved and marked paid." });
+    } catch (err) {
+      console.error("EFTPOS booking error:", err.message);
+      return res.status(500).json({ error: "Could not save EFTPOS booking. Please try again." });
+    }
+  },
+);
+
 app.post(
   "/create-inperson-booking",
   requireSameOrigin,
