@@ -1,7 +1,7 @@
 Add-Type -AssemblyName System.Drawing
 
-$src = 'Smash Force Badminton Centre logo 3.png'
-$dst = 'smashforce-logo-transparent.png'
+$src = 'SmashCourt Badminton Centre logo 3.png'
+$dst = 'smashcourt-logo-transparent.png'
 
 $orig = [System.Drawing.Bitmap]::FromFile($src)
 $bmp = New-Object System.Drawing.Bitmap($orig.Width, $orig.Height, [System.Drawing.Imaging.PixelFormat]::Format32bppArgb)

@@ -56,7 +56,7 @@ async function main() {
       );
       const user = process.env.MYSQL_USER || process.env.MYSQLUSER || "root";
       const database =
-        process.env.MYSQL_DATABASE || process.env.MYSQLDATABASE || "smashforce";
+        process.env.MYSQL_DATABASE || process.env.MYSQLDATABASE || "smashcourt";
       console.log(`Connecting to MySQL at ${host}:${port}/${database} …`);
       connection = await mysql.createConnection({
         host,

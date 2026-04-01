@@ -17,7 +17,7 @@ yarn-debug.log*
 yarn-error.log*
 
 # Build / deploy artifacts
-smashforce-deploy.zip
+smashcourt-deploy.zip
 .deploy_stage/
 
 # Generated images

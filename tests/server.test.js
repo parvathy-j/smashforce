@@ -7,7 +7,7 @@ const TEST_DB_FILE = path.join(
   __dirname,
   "..",
   "data",
-  `smashforce.test.${process.pid}.db`,
+  `smashcourt.test.${process.pid}.db`,
 );
 
 process.env.DB_FILE = TEST_DB_FILE;

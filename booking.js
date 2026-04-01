@@ -55,7 +55,7 @@ function setupPaymentRequest(amountCents) {
   paymentRequest = stripe.paymentRequest({
     country: "AU",
     currency: "aud",
-    total: { label: "Smashforce Badminton Centre", amount: amountCents },
+    total: { label: "SmashCourt Badminton Centre", amount: amountCents },
     requestPayerName: true,
     requestPayerEmail: true,
   });

@@ -74,7 +74,7 @@ const PASSWORD_RESET_BASE_URL = String(
 ).trim();
 const RESEND_API_KEY = String(process.env.RESEND_API_KEY || "").trim();
 const resend = RESEND_API_KEY ? new Resend(RESEND_API_KEY) : null;
-const BOOKING_FROM_EMAIL = "Smashforce Badminton Centre <info@smashforcebadminton.com>";
+const BOOKING_FROM_EMAIL = "SmashCourt Badminton Centre <info@smashcourtbadminton.com>";
 
 const SMTP_HOST = String(process.env.SMTP_HOST || "").trim();
 const SMTP_PORT = Number(process.env.SMTP_PORT || 587);
@@ -89,12 +89,12 @@ const SMTP_FROM = String(process.env.SMTP_FROM || SMTP_USER || "").trim();
 const SMTP_REPLY_TO = String(process.env.SMTP_REPLY_TO || "").trim();
 const SMTP_DEBUG = process.env.SMTP_DEBUG === "1";
 const CONTACT_FORM_TO = String(
-  process.env.CONTACT_FORM_TO || "info@smashforcebaminton.com",
+  process.env.CONTACT_FORM_TO || "info@smashcourtbaminton.com",
 ).trim();
 const USERS_FILE =
   process.env.USERS_FILE || path.join(__dirname, "data", "users.json");
 const DB_FILE =
-  process.env.DB_FILE || path.join(__dirname, "data", "smashforce.db");
+  process.env.DB_FILE || path.join(__dirname, "data", "smashcourt.db");
 const DB_PROVIDER = String(process.env.DB_PROVIDER || "sqlite")
   .trim()
   .toLowerCase();
@@ -187,7 +187,7 @@ async function sendPasswordResetEmail({ toEmail, toName, resetLink }) {
           <!-- Header -->
           <tr>
             <td style="background:linear-gradient(135deg,#0f2f57 0%,#1a4a8a 100%);padding:36px 40px 28px;text-align:center;border-bottom:1px solid rgba(255,255,255,0.1);">
-              <p style="margin:0 0 6px;font-size:11px;letter-spacing:3px;text-transform:uppercase;color:#5da9e9;font-weight:700;">Smashforce Badminton Centre</p>
+              <p style="margin:0 0 6px;font-size:11px;letter-spacing:3px;text-transform:uppercase;color:#5da9e9;font-weight:700;">SmashCourt Badminton Centre</p>
               <h1 style="margin:0;font-size:26px;font-weight:800;color:#ffffff;">Password Reset</h1>
             </td>
           </tr>
@@ -196,7 +196,7 @@ async function sendPasswordResetEmail({ toEmail, toName, resetLink }) {
           <tr>
             <td style="padding:32px 40px 24px;">
               <p style="margin:0 0 16px;font-size:15px;color:rgba(255,255,255,0.85);">Hi ${safeName},</p>
-              <p style="margin:0 0 24px;font-size:15px;color:rgba(255,255,255,0.7);line-height:1.6;">We received a request to reset your Smashforce password. Click the button below — this link is valid for <strong style="color:#ffffff;">1 hour</strong>.</p>
+              <p style="margin:0 0 24px;font-size:15px;color:rgba(255,255,255,0.7);line-height:1.6;">We received a request to reset your SmashCourt password. Click the button below — this link is valid for <strong style="color:#ffffff;">1 hour</strong>.</p>
               <table cellpadding="0" cellspacing="0" style="margin:0 auto 24px;">
                 <tr>
                   <td style="background:#5da9e9;border-radius:8px;text-align:center;">
@@ -222,8 +222,8 @@ async function sendPasswordResetEmail({ toEmail, toName, resetLink }) {
           <!-- Footer -->
           <tr>
             <td style="background:rgba(0,0,0,0.2);padding:20px 40px;text-align:center;border-top:1px solid rgba(255,255,255,0.08);">
-              <p style="margin:0;font-size:12px;color:rgba(255,255,255,0.35);">4 Simpson St, Moorabbin VIC 3189 &nbsp;·&nbsp; info@smashforcebadminton.com</p>
-              <p style="margin:6px 0 0;font-size:12px;color:rgba(255,255,255,0.25);">© ${new Date().getFullYear()} Smashforce Badminton Centre</p>
+              <p style="margin:0;font-size:12px;color:rgba(255,255,255,0.35);">4 Simpson St, Moorabbin VIC 3189 &nbsp;·&nbsp; info@smashcourtbadminton.com</p>
+              <p style="margin:6px 0 0;font-size:12px;color:rgba(255,255,255,0.25);">© ${new Date().getFullYear()} SmashCourt Badminton Centre</p>
             </td>
           </tr>
 
@@ -237,23 +237,23 @@ async function sendPasswordResetEmail({ toEmail, toName, resetLink }) {
   const text = [
     `Hi ${String(toName || "there").trim()},`,
     "",
-    "We received a request to reset your Smashforce password.",
+    "We received a request to reset your SmashCourt password.",
     "",
     `Reset your password here (valid for 1 hour):`,
     safeLink,
     "",
     "If you didn't request this, you can safely ignore this email.",
     "",
-    "Smashforce Badminton Centre",
+    "SmashCourt Badminton Centre",
     "4 Simpson St, Moorabbin VIC 3189",
-    "info@smashforcebadminton.com",
+    "info@smashcourtbadminton.com",
   ].join("\n");
 
   try {
     const { error } = await resend.emails.send({
       from: BOOKING_FROM_EMAIL,
       to: [toEmail],
-      subject: "Reset your Smashforce password",
+      subject: "Reset your SmashCourt password",
       html,
       text,
     });
@@ -500,7 +500,7 @@ app.get("/test-email", async (req, res) => {
     await transporter.sendMail({
       from: SMTP_FROM,
       to: SMTP_FROM,
-      subject: "Test Email from Smashforce Server",
+      subject: "Test Email from SmashCourt Server",
       text: "This is a test email from the /test-email endpoint.",
     });
     res.json({ ok: true, message: "Test email sent (check your SMTP inbox)" });
@@ -550,7 +550,7 @@ async function sendBookingConfirmationEmail({
           <!-- Header -->
           <tr>
             <td style="background:linear-gradient(135deg,#0f2f57 0%,#1a4a8a 100%);padding:36px 40px 28px;text-align:center;border-bottom:1px solid rgba(255,255,255,0.1);">
-              <p style="margin:0 0 6px;font-size:11px;letter-spacing:3px;text-transform:uppercase;color:#5da9e9;font-weight:700;">Smashforce Badminton Centre</p>
+              <p style="margin:0 0 6px;font-size:11px;letter-spacing:3px;text-transform:uppercase;color:#5da9e9;font-weight:700;">SmashCourt Badminton Centre</p>
               <h1 style="margin:0;font-size:28px;font-weight:800;color:#ffffff;letter-spacing:0.5px;">Booking Confirmed!</h1>
               <p style="margin:10px 0 0;font-size:15px;color:rgba(255,255,255,0.65);">See you on the court, ${safeName}.</p>
             </td>
@@ -597,8 +597,8 @@ async function sendBookingConfirmationEmail({
           <!-- Footer -->
           <tr>
             <td style="background:rgba(0,0,0,0.2);padding:20px 40px;text-align:center;border-top:1px solid rgba(255,255,255,0.08);">
-              <p style="margin:0;font-size:12px;color:rgba(255,255,255,0.35);">4 Simpson St, Moorabbin VIC 3189 &nbsp;·&nbsp; info@smashforcebadminton.com</p>
-              <p style="margin:6px 0 0;font-size:12px;color:rgba(255,255,255,0.25);">© ${new Date().getFullYear()} Smashforce Badminton Centre</p>
+              <p style="margin:0;font-size:12px;color:rgba(255,255,255,0.35);">4 Simpson St, Moorabbin VIC 3189 &nbsp;·&nbsp; info@smashcourtbadminton.com</p>
+              <p style="margin:6px 0 0;font-size:12px;color:rgba(255,255,255,0.25);">© ${new Date().getFullYear()} SmashCourt Badminton Centre</p>
             </td>
           </tr>
 
@@ -623,9 +623,9 @@ async function sendBookingConfirmationEmail({
     "",
     "Please arrive 10 minutes before your session.",
     "",
-    "Smashforce Badminton Centre",
+    "SmashCourt Badminton Centre",
     "4 Simpson St, Moorabbin VIC 3189",
-    "info@smashforcebadminton.com",
+    "info@smashcourtbadminton.com",
   ].join("\n");
 
   try {
@@ -682,7 +682,7 @@ async function sendMembershipConfirmationEmail({ to, name, membershipType }) {
           <!-- Header -->
           <tr>
             <td style="background:linear-gradient(135deg,#0f2f57 0%,#1a4a8a 100%);padding:36px 40px 28px;text-align:center;border-bottom:1px solid rgba(255,255,255,0.1);">
-              <p style="margin:0 0 6px;font-size:11px;letter-spacing:3px;text-transform:uppercase;color:#5da9e9;font-weight:700;">Smashforce Badminton Centre</p>
+              <p style="margin:0 0 6px;font-size:11px;letter-spacing:3px;text-transform:uppercase;color:#5da9e9;font-weight:700;">SmashCourt Badminton Centre</p>
               <h1 style="margin:0;font-size:28px;font-weight:800;color:#ffffff;">Membership Activated!</h1>
               <p style="margin:10px 0 0;font-size:15px;color:rgba(255,255,255,0.65);">Welcome aboard, ${safeName}.</p>
             </td>
@@ -725,8 +725,8 @@ async function sendMembershipConfirmationEmail({ to, name, membershipType }) {
           <!-- Footer -->
           <tr>
             <td style="background:rgba(0,0,0,0.2);padding:20px 40px;text-align:center;border-top:1px solid rgba(255,255,255,0.08);">
-              <p style="margin:0;font-size:12px;color:rgba(255,255,255,0.35);">4 Simpson St, Moorabbin VIC 3189 &nbsp;·&nbsp; info@smashforcebadminton.com</p>
-              <p style="margin:6px 0 0;font-size:12px;color:rgba(255,255,255,0.25);">© ${new Date().getFullYear()} Smashforce Badminton Centre</p>
+              <p style="margin:0;font-size:12px;color:rgba(255,255,255,0.35);">4 Simpson St, Moorabbin VIC 3189 &nbsp;·&nbsp; info@smashcourtbadminton.com</p>
+              <p style="margin:6px 0 0;font-size:12px;color:rgba(255,255,255,0.25);">© ${new Date().getFullYear()} SmashCourt Badminton Centre</p>
             </td>
           </tr>
 
@@ -749,16 +749,16 @@ async function sendMembershipConfirmationEmail({ to, name, membershipType }) {
     "Cancel anytime — no fees. Visit your account page to manage your membership:",
     cancelUrl,
     "",
-    "Smashforce Badminton Centre",
+    "SmashCourt Badminton Centre",
     "4 Simpson St, Moorabbin VIC 3189",
-    "info@smashforcebadminton.com",
+    "info@smashcourtbadminton.com",
   ].join("\n");
 
   try {
     const { error } = await resend.emails.send({
       from: BOOKING_FROM_EMAIL,
       to: [to],
-      subject: `${plan.title} Activated – Smashforce`,
+      subject: `${plan.title} Activated – SmashCourt`,
       html,
       text,
     });
@@ -896,7 +896,7 @@ const SITE_CONTENT_DEFAULTS = {
   bookingCta: "🏸 Book Your Court Now",
   contactLocation: "4 Simpson St, Moorabbin VIC 3189",
   contactPhone: "+61 370 447 733",
-  contactEmail: "info@smashforceacademy.com",
+  contactEmail: "info@smashcourtacademy.com",
   contactHours: "Morning 6–9 AM · Evening 5–11 PM",
   floatingButtonText: "🏸Book Now!",
 };
@@ -2023,7 +2023,7 @@ async function initMysqlDatabase() {
       user: process.env.MYSQL_USER || process.env.MYSQLUSER || "root",
       password: process.env.MYSQL_PASSWORD || process.env.MYSQLPASSWORD || "",
       database:
-        process.env.MYSQL_DATABASE || process.env.MYSQLDATABASE || "smashforce",
+        process.env.MYSQL_DATABASE || process.env.MYSQLDATABASE || "smashcourt",
       waitForConnections: true,
       connectionLimit: Number(process.env.MYSQL_CONNECTION_LIMIT || 10),
       queueLimit: 0,

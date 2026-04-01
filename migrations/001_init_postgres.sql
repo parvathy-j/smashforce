@@ -1,4 +1,4 @@
--- MySQL bootstrap schema for Smashforce
+-- MySQL bootstrap schema for SmashCourt
 
 CREATE TABLE IF NOT EXISTS users (
   id VARCHAR(191) PRIMARY KEY,

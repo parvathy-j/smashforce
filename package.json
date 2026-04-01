@@ -1,8 +1,8 @@
 {
-  "name": "smashforce",
+  "name": "smashcourt",
   "version": "1.0.0",
   "private": true,
-  "description": "Smash Force Academy booking and Stripe backend",
+  "description": "SmashCourt Badminton Centre booking and Stripe backend",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
